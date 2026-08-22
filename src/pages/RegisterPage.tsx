@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
+import { supabase } from "../lib/supabase";
+
 function RegisterPage()
 {
     const [name, setName] = useState("");
@@ -7,22 +9,46 @@ function RegisterPage()
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
-    const navigate = useNavigate();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
 
-    function submitForm(event: React.SyntheticEvent<HTMLFormElement>)
+
+    async function submitForm(event: React.SyntheticEvent<HTMLFormElement>) 
     {
         event.preventDefault();
-        if(password === confirmPassword)
-        {
-            setError("");
-            navigate("/dashboard");
-        }
-        else
-        {
+
+        if (password !== confirmPassword) {
             setError("Passwords do not match.");
+            return;
         }
 
+        setIsSubmitting(true);
+        setError("");
+        setSuccessMessage("");
+
+        const { data, error: signUpError } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    name,
+                },
+            },
+        });
+
+        if (signUpError) {
+            setError(signUpError.message);
+            setIsSubmitting(false);
+            return;
+        }
+
+        setSuccessMessage("Check your email to verify your account.");
+        setIsSubmitting(false);
+        console.log(data);
     }
+
+
+
     return (
         <>
             <h1>Register Page.</h1>
@@ -35,7 +61,10 @@ function RegisterPage()
                 <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required/>
                 <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required/>
                 {error && <p>{error}</p>}
-                <button type="submit">Create Account</button>
+                <button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Creating Account..." : "Create Account"}
+                </button>
+                {successMessage && <p>{successMessage}</p>}
             </form>
         </>
     );

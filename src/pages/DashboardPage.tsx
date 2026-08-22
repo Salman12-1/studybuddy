@@ -1,5 +1,7 @@
 import { useState } from "react";
 import StudySetCard from "../components/StudySetCard";
+import { supabase } from "../lib/supabase";
+
 type StudySet =
 {
     id: number;
@@ -11,6 +13,17 @@ function DashboardPage()
     const [studySets, setStudySets] = useState<StudySet[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newTitle, setNewTitle] = useState("");
+
+
+    async function handleLogout()
+    {
+        const {error} = await supabase.auth.signOut();
+
+        if (error) 
+        {
+            console.error(error.message);
+        }
+    }
 
     function createStudySet(event: React.SyntheticEvent<HTMLFormElement>) 
     {
@@ -29,7 +42,9 @@ function DashboardPage()
         <>
             <h1>StudyBuddy Dashboard</h1>
             <h2>Your Study Sets</h2>
+
             {!isCreating && <button onClick={() => setIsCreating(true)}>+ Create Study Set</button>}
+
             {isCreating && 
                 <form onSubmit={createStudySet}>
                     <input type="text" value={newTitle} onChange={(event) => setNewTitle(event.target.value)}/>
@@ -38,6 +53,8 @@ function DashboardPage()
                 </form>
             }
             {studySets.length === 0 && <p>No study sets yet.</p>}
+
+            <button onClick={handleLogout}>Logout</button>
 
             {studySets.map((studySet) => (
                 <StudySetCard 

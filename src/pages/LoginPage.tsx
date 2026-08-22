@@ -1,19 +1,34 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { supabase } from "../lib/supabase";
 
 function LoginPage()
 {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
 
-    function submitForm(event: React.SyntheticEvent<HTMLFormElement>)
+    async function submitForm(event: React.SyntheticEvent<HTMLFormElement>)
     {
         event.preventDefault()
-        console.log(email);
-        console.log(password);
+        
+        setError("");
+        setIsSubmitting(true);
+
+        const {error:logInError} = await supabase.auth.signInWithPassword({email, password});
+
+        if(logInError)
+        {
+            setError(logInError.message);
+            setIsSubmitting(false);
+            return;
+        }
+        setIsSubmitting(false);
         navigate("/dashboard");
+
     }
     return (
         <>
@@ -24,8 +39,10 @@ function LoginPage()
 
                 <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
                 <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-                <button type="submit">Login</button>
-
+                <button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Logging in..." : "Login"}
+                </button>
+                {error && <p>{error}</p>}
             </form>
         </>
     );
