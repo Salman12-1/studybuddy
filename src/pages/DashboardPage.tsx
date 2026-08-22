@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StudySetCard from "../components/StudySetCard";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 
 type StudySet =
 {
-    id: number;
+    id: string;
     title: string;
 }
 
@@ -13,6 +14,22 @@ function DashboardPage()
     const [studySets, setStudySets] = useState<StudySet[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newTitle, setNewTitle] = useState("");
+    const { session } = useAuth();
+
+    async function loadStudySets() 
+    {
+        const {data, error} = await supabase
+        .from("study_sets")
+        .select("id, title");
+
+        if(error)
+        {
+            console.error(error.message);
+            return;
+        }
+        
+        setStudySets(data);
+    }
 
 
     async function handleLogout()
@@ -25,17 +42,43 @@ function DashboardPage()
         }
     }
 
-    function createStudySet(event: React.SyntheticEvent<HTMLFormElement>) 
+    async function createStudySet(event: React.SyntheticEvent<HTMLFormElement>) 
     {
         event.preventDefault();
 
         if(newTitle.trim() === "")
             return;
 
-        setStudySets([...studySets, {id: Date.now(), title: newTitle}]);
+        if(!session)
+            return;
+
+        const {data, error} = await supabase
+        .from("study_sets")
+        .insert({
+            title: newTitle.trim(),
+            user_id: session.user.id,//logged in user's UUID. 
+        })
+        .select("id, title")//return created row.
+        .single();//return one object instead of an array.
+
+        if (error) 
+        {
+            console.error(error.message);
+            return;
+        }
+
+        setStudySets((previousStudySets) => [
+            ...previousStudySets,
+            data
+        ]);
+        
         setNewTitle("");
         setIsCreating(false);
     }
+
+    useEffect(() => {
+        loadStudySets();
+    }, []);
 
 
     return (
