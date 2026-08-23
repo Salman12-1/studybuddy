@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 type StudySetCardProps = 
 {
-    id: number;
+    id: string;
     title: string;
 }
 
