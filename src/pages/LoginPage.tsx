@@ -49,3 +49,9 @@ function LoginPage()
 }
 
 export default LoginPage;
+
+
+/*
+This page handles real user login. It stores the entered email and password in React state, submits them to Supabase using signInWithPassword, 
+displays authentication errors when necessary, prevents repeated submissions while logging in, and navigates successful users to the Dashboard.
+*/

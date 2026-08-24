@@ -71,3 +71,10 @@ function RegisterPage()
 }
 
 export default RegisterPage;
+
+
+/*
+This page handles account creation. It collects the user’s name, email, password, and password confirmation, validates matching passwords,
+and uses Supabase signUp to create the account. It also stores the user's name as authentication metadata, 
+handles Supabase errors, prevents duplicate submissions, and tells the user to verify their email after successful registration.
+*/

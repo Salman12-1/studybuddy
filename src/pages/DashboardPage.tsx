@@ -16,6 +16,7 @@ function DashboardPage()
     const [newTitle, setNewTitle] = useState("");
     const { session } = useAuth();
 
+    
     async function loadStudySets() 
     {
         const {data, error} = await supabase
@@ -98,7 +99,6 @@ function DashboardPage()
             {studySets.length === 0 && <p>No study sets yet.</p>}
 
             <button onClick={handleLogout}>Logout</button>
-
             {studySets.map((studySet) => (
                 <StudySetCard 
                     key={studySet.id}
@@ -111,3 +111,9 @@ function DashboardPage()
 }
 
 export default DashboardPage;
+
+/*
+This is the main page users see after logging in. It loads the authenticated user’s study sets from the study_sets database table, 
+displays them using StudySetCard, allows the user to create new study sets, and logs the user out through Supabase. 
+Study sets are now stored permanently in the database rather than only in React state.
+*/

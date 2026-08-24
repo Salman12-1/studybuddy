@@ -14,3 +14,9 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+/*
+This is the entry point of the React application. It starts React and renders the application into the root element in index.html. 
+It also wraps the app with BrowserRouter, which enables routing, and AuthProvider, 
+which makes the current Supabase authentication session available throughout StudyBuddy.
+*/

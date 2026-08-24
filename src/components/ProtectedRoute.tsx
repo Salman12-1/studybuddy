@@ -17,3 +17,9 @@ function ProtectedRoute()
 }
 
 export default ProtectedRoute;
+
+/*
+This component protects pages that should only be accessible to logged-in users. It reads the current authentication session from AuthContext. 
+While authentication is being checked it displays a loading state; if no session exists it redirects the user to /login; 
+otherwise it renders the requested protected page using Outlet.
+*/

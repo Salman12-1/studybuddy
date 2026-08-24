@@ -1,6 +1,7 @@
 import { useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 
 type StudySet = 
 {
@@ -24,7 +25,29 @@ function StudySetPage()
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [materials, setMaterials] = useState<StudyMaterial[]>([])
     const { id } = useParams();
+    const { session } = useAuth();
 
+
+    async function extractMaterial(materialId: string) 
+    {
+        if(!session)
+        {
+            console.error("No session");
+            return;
+        }
+
+        const url = `http://localhost:3000/api/materials/${materialId}/extract`;
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${session.access_token}`
+            }
+        })
+
+        const data = await response.json();
+        console.log(data);
+    }
 
     async function loadStudySet() 
     {
@@ -74,14 +97,16 @@ function StudySetPage()
         }
         console.log("Storage Upload successful");
 
-        const {error: errorTable} = await supabase
+        const {data: newMaterial, error: errorTable} = await supabase
         .from("study_materials")
         .insert({
             study_set_id: id,
             file_name: selectedFile.name,
             storage_path: path,
             mime_type: selectedFile.type, 
-        });
+        })
+        .select("id")
+        .single();
 
         if(errorTable)
         {
@@ -96,6 +121,8 @@ function StudySetPage()
             console.error(errorTable);
             return;
         }
+
+        await extractMaterial(newMaterial.id);
         console.log("Table Upload successful");
         await loadMaterials();
         setSelectedFile(null);
@@ -145,10 +172,21 @@ function StudySetPage()
             <h3>Study Set ID: {id}</h3>
             <h4>Materials</h4>
             {materials.length === 0 && <p>No materials uploaded yet.</p>}
+
             {materials.map((material) => (
-                <h5 key={material.id}>{material.file_name}</h5>
+                <div key={material.id}>
+                    <h5>{material.file_name}</h5>
+                </div>
             ))}
         </>
     );
 }
 export default StudySetPage;
+
+
+/*
+This page represents one specific study set. It reads the study-set ID from the URL using useParams, loads that study set from Supabase, 
+and loads its uploaded study materials. It also lets users select and securely upload PDF files to the study-materials Storage bucket, 
+creates matching records in the study_materials database table, removes uploaded files if the database insert fails,
+and updates the material list immediately after a successful upload.
+*/

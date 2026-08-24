@@ -26,3 +26,8 @@ function App()
 }
 
 export default App;
+
+/*
+This file defines the main routing structure of StudyBuddy. It maps URLs such as /login, /register, /dashboard, and /study/:id to their corresponding page components. 
+Public pages can be accessed by anyone, while private pages are placed inside ProtectedRoute so only authenticated users can access them.
+*/

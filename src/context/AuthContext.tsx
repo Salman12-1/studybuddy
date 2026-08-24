@@ -61,3 +61,10 @@ function AuthProvider({ children }: AuthProviderProps)
     );
 }
 export default AuthProvider;
+
+/*
+This file manages StudyBuddy’s shared authentication state. 
+AuthProvider checks whether a Supabase session already exists when the app starts and listens for future login/logout changes. 
+It stores the current session and loading state and shares them with the rest of the application through React Context. 
+The useAuth() hook provides an easier way for components to access this authentication information.
+*/
