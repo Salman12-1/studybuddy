@@ -2,6 +2,7 @@ import { useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import ReactMarkdown from "react-markdown";
 
 type StudySet = 
 {
@@ -23,9 +24,83 @@ function StudySetPage()
     const [studySet, setStudySet] = useState<StudySet | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [materials, setMaterials] = useState<StudyMaterial[]>([])
+    const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+    const [explanations, setExplanations] = useState<Record<string, string>>({});
+    const [explainingIds, setExplainingIds] = useState<Set<string>>(new Set());
+    const [explainErrors, setExplainErrors] = useState<Record<string, string>>({});
     const { id } = useParams();
     const { session } = useAuth();
+
+
+    async function explainMaterial(materialId: string) 
+    {
+        if(!session)
+        {
+            console.error("No session");
+            return;
+        }
+
+        setExplainErrors((prev) => {
+            const next = { ...prev };
+            delete next[materialId];
+            return next;
+        });
+
+
+        setExplainingIds((prev) => {
+            const next = new Set(prev);
+            next.add(materialId);
+            return next;
+        });
+
+        try 
+        {
+            const url = `http://localhost:3000/api/materials/${materialId}/explain`;
+
+            const response = await fetch(url ,{
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`
+                }
+            });
+
+           const data = await response.json();
+
+            if (!response.ok)
+            {
+                console.error(data.error);
+                
+                setExplainErrors((prev) => ({
+                    ...prev,
+                    [materialId]: data.error,
+                }));
+
+                return;
+            }
+
+            setExplanations((prev) => ({
+                ...prev, 
+                [materialId]: data.explanation,
+            }));
+        }
+        catch (error)
+        {
+            console.error(error);
+
+            setExplainErrors((prev) => ({
+                ...prev,
+                [materialId]: "Could not connect to the server",
+            }));
+        }
+        finally 
+        {
+            setExplainingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(materialId);
+                return next;
+            });
+        }
+    }
 
 
     async function extractMaterial(materialId: string) 
@@ -43,7 +118,7 @@ function StudySetPage()
             headers: {
                 Authorization: `Bearer ${session.access_token}`
             }
-        })
+        });
 
         const data = await response.json();
         console.log(data);
@@ -176,6 +251,20 @@ function StudySetPage()
             {materials.map((material) => (
                 <div key={material.id}>
                     <h5>{material.file_name}</h5>
+                    <button onClick={() => explainMaterial(material.id)} disabled={explainingIds.has(material.id)}>
+                        {explainingIds.has(material.id) ? "Generating..." : "Explain"}
+                    </button>
+
+                    {explainErrors[material.id] && (
+                        <p>{explainErrors[material.id]}</p>
+                    )}
+
+                    {explanations[material.id] && (
+                        <div>
+                            <h4>Explanation</h4>
+                            <ReactMarkdown>{explanations[material.id]}</ReactMarkdown>
+                        </div>
+                    )}
                 </div>
             ))}
         </>

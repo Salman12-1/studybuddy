@@ -4,6 +4,7 @@ import supabase from "./lib/supabase";
 import { requireAuth } from "./middleware/requireAuth";
 import { createUserSupabaseClient } from "./lib/createUserSupabaseClient";
 import { PDFParse } from "pdf-parse";
+import openai from "./lib/openai";
 
 const app = express();
 
@@ -108,4 +109,101 @@ app.post("/api/materials/:id/extract", requireAuth, async (request, response) =>
         });
     }
     response.json(data);
+});
+
+
+
+app.post("/api/materials/:id/explain", requireAuth, async (request, response) => {
+        
+    const materialId = request.params.id;
+    const token = response.locals.accessToken;
+
+    const userSupabase = createUserSupabaseClient(token);
+
+    const{ data, error } = await userSupabase
+    .from("study_materials")
+    .select("id, file_name, extracted_text")
+    .eq("id", materialId)
+    .maybeSingle();
+
+
+    if(error)
+    {
+        return response.status(500).json({
+            error: "Failed to load material"
+        });
+    }
+
+    if(!data)
+    {
+        return response.status(404).json({
+            error: "Material not found"
+        });
+    }
+
+    if (!data.extracted_text) 
+    {
+        return response.status(400).json({
+            error: "Material has not been extracted yet"
+        });
+    }
+
+    // Temporary token-limit strategy.
+    // Later, when we implement chunking for large PDFs, revisit this logic.
+    const textLength = data.extracted_text.length;
+
+    let maxOutputTokens = 1200;
+
+    if (textLength > 12000)
+    {
+        maxOutputTokens = 2000;
+    }
+
+    if (textLength > 25000)
+    {
+        maxOutputTokens = 3000;
+    }
+
+    try
+    {
+        const aiResponse = await openai.responses.create({
+            model: "gpt-5.6-luna",
+            input: `
+                You are a study assistant.
+
+                Explain the following material in a concise, easy-to-understand way for a university student.
+
+                Rules:
+                - Do not rewrite or repeat the document.
+                - Focus on the most important concepts.
+                - Explain difficult ideas in simpler words.
+                - Use short sections or bullet points where helpful.
+                - Stay faithful to the source material.
+                - If the source includes examples, explain or simplify those examples.
+                - If the source does not include an example, do not invent one.
+                - Do not change or invent facts, numbers, definitions, or terminology.
+                - Keep the explanation reasonably short.
+                - Do not add conclusions, implications, or advice that are not explicitly supported by the source material.
+                - If something is not stated in the source, omit it.
+
+                Study material:
+                ${data.extracted_text}
+            `,
+            max_output_tokens: maxOutputTokens,
+        });
+
+        return response.json({
+            explanation: aiResponse.output_text
+        });
+    }
+
+    catch (aiError)
+    {
+        console.error(aiError);
+
+        return response.status(500).json({
+            error: "Failed to generate explanation"
+        });
+    }
+    
 });
