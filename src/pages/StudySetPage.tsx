@@ -16,8 +16,15 @@ type StudyMaterial=
     file_name: string;
     storage_path: string;
     mime_type: string;
+    explanation: string | null;
 };
-
+type Flashcard = 
+{
+    id: string;
+    question: string;
+    answer: string;
+    position: number;
+};
 
 function StudySetPage()
 {
@@ -28,8 +35,65 @@ function StudySetPage()
     const [explanations, setExplanations] = useState<Record<string, string>>({});
     const [explainingIds, setExplainingIds] = useState<Set<string>>(new Set());
     const [explainErrors, setExplainErrors] = useState<Record<string, string>>({});
+    const [flashcardsByMaterial, setFlashcardsByMaterial] = useState<Record<string, Flashcard[]>>({});
+    const [generatingFlashcardIds, setGeneratingFlashcardIds] = useState<Set<string>>(new Set());
     const { id } = useParams();
     const { session } = useAuth();
+
+    async function generateFlashcards(materialId: string)
+    {
+        if(!session)
+        {
+            console.error("No session");
+            return;
+        }
+        
+
+        setGeneratingFlashcardIds((prev) => {
+            const next = new Set(prev);
+            next.add(materialId);
+            return next;
+        });
+
+        try
+        {
+            const url = `http://localhost:3000/api/materials/${materialId}/flashcards`;
+
+            const response = await fetch(url ,{
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok)
+            {
+                console.error(data.error);
+                return;
+            }
+
+
+            setFlashcardsByMaterial((prev) => ({
+                ...prev,
+                [materialId]: data.flashcards,
+            }));
+        }
+        catch (error)
+        {
+            console.error(error);
+        }
+        finally
+        {
+            setGeneratingFlashcardIds((prev) => {
+                const next = new Set(prev);
+                next.delete(materialId);
+                return next;
+            });
+        }
+
+    }
 
 
     async function explainMaterial(materialId: string) 
@@ -207,8 +271,9 @@ function StudySetPage()
     {
         const{data, error} = await supabase
         .from("study_materials")
-        .select("id, file_name, storage_path, mime_type")
-        .eq("study_set_id", id);
+        .select("id, file_name, storage_path, mime_type, explanation")
+        .eq("study_set_id", id)
+        .order("created_at", { ascending: true });
 
         if(error)
         {
@@ -217,6 +282,16 @@ function StudySetPage()
         }
 
         setMaterials(data);
+
+        const savedExplanations: Record<string, string> = {};
+
+        data.forEach((material) => {
+            if (material.explanation) {
+                savedExplanations[material.id] = material.explanation;
+            }
+        });
+
+        setExplanations(savedExplanations);
     }
 
 
@@ -252,8 +327,36 @@ function StudySetPage()
                 <div key={material.id}>
                     <h5>{material.file_name}</h5>
                     <button onClick={() => explainMaterial(material.id)} disabled={explainingIds.has(material.id)}>
-                        {explainingIds.has(material.id) ? "Generating..." : "Explain"}
+                        {explainingIds.has(material.id)
+                            ? "Generating..."
+                            : explanations[material.id]
+                                ? "Regenerate" : "Explain"}
                     </button>
+                    
+                    <button onClick={() => generateFlashcards(material.id)} disabled={generatingFlashcardIds.has(material.id)}>
+                        {generatingFlashcardIds.has(material.id)
+                            ? "Generating Flashcards..."
+                            : "Generate Flashcards"}
+                    </button>
+                    
+
+                    {flashcardsByMaterial[material.id] && (
+                        <div>
+                            <h4>Flashcards</h4>
+
+                            {[...flashcardsByMaterial[material.id]]
+                                .sort((a, b) => a.position - b.position)
+                                .map((flashcard) => (
+                                    <div key={flashcard.id}>
+                                        <p><strong>Question:</strong> {flashcard.question}</p>
+                                        <p><strong>Answer:</strong> {flashcard.answer}</p>
+                                    </div>
+                                ))}
+                        </div>
+                    )}
+
+
+
 
                     {explainErrors[material.id] && (
                         <p>{explainErrors[material.id]}</p>

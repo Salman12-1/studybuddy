@@ -5,6 +5,19 @@ import { requireAuth } from "./middleware/requireAuth";
 import { createUserSupabaseClient } from "./lib/createUserSupabaseClient";
 import { PDFParse } from "pdf-parse";
 import openai from "./lib/openai";
+import { z } from "zod";
+import { zodTextFormat } from "openai/helpers/zod";
+
+const FlashcardsResponse = z.object({
+    flashcards: z.array(
+        z.object({
+            question: z.string(),
+            answer: z.string(),
+        })
+    ),
+});
+
+
 
 const app = express();
 
@@ -16,13 +29,6 @@ app.use(express.json());
 app.get("/health", (_request, response) => {//"_" in request means i know its there but i dont need it rn.
 
     response.json({ status: "ok" });
-});
-
-
-//run function when server starts
-app.listen(3000, () => {
-
-    console.log("StudyBuddy backend running on port 3000");
 });
 
 
@@ -192,6 +198,20 @@ app.post("/api/materials/:id/explain", requireAuth, async (request, response) =>
             max_output_tokens: maxOutputTokens,
         });
 
+
+        const {error: updateExplanationError} = await userSupabase
+        .from("study_materials")
+        .update({"explanation": aiResponse.output_text})
+        .eq("id", materialId);
+
+        if(updateExplanationError)
+        {
+            return response.status(500).json({
+                error: "Failed to save explanation"
+            });
+        }
+
+
         return response.json({
             explanation: aiResponse.output_text
         });
@@ -206,4 +226,160 @@ app.post("/api/materials/:id/explain", requireAuth, async (request, response) =>
         });
     }
     
+});
+
+
+
+
+app.post("/api/materials/:id/flashcards", requireAuth, async (request, response) => {
+        
+    const materialId = request.params.id;
+    const token = response.locals.accessToken;
+
+    const userSupabase = createUserSupabaseClient(token);
+
+    const {data, error} = await userSupabase
+    .from("study_materials")
+    .select("id, file_name, extracted_text")
+    .eq("id", materialId)
+    .maybeSingle();
+
+
+     if(error)
+    {
+        return response.status(500).json({
+            error: "Failed to load material"
+        });
+    }
+
+    if(!data)
+    {
+        return response.status(404).json({
+            error: "Material not found"
+        });
+    }
+
+    if (!data.extracted_text) 
+    {
+        return response.status(400).json({
+            error: "Material has not been extracted yet"
+        });
+    }
+    
+
+    const textLength = data.extracted_text.length;
+
+    let flashcardCount = 10;
+
+    if (textLength > 12000)
+    {
+        flashcardCount = 15;
+    }
+
+    if (textLength > 25000)
+    {
+        flashcardCount = 20;
+    }
+
+    let parsedFlashcards;
+    try
+    {
+        const aiResponse = await openai.responses.parse({
+            model: "gpt-5.6-luna",
+
+            input: `
+                You are a study assistant.
+
+                Generate exactly ${flashcardCount} flashcards from the study material below.
+
+                Rules:
+                - Focus on the most important concepts.
+                - Each flashcard must test one clear idea.
+                - Keep questions concise and specific.
+                - Keep answers concise but complete.
+                - Stay faithful to the source material.
+                - Do not invent facts, examples, numbers, definitions, or terminology.
+                - If something is not stated in the source, do not include it.
+                - Avoid duplicate or nearly identical flashcards.
+
+                Study material:
+                ${data.extracted_text}
+            `,
+
+            text: {
+                format: zodTextFormat(
+                    FlashcardsResponse,
+                    "flashcards_response"
+                ),
+            },
+        });
+
+        parsedFlashcards = aiResponse.output_parsed;
+    }
+    catch (aiError)
+    {
+        console.error(aiError);
+
+        return response.status(500).json({
+            error: "Failed to generate flashcards"
+        });
+    }
+
+
+
+    
+    if (!parsedFlashcards)
+    {
+        return response.status(500).json({
+            error: "Failed to generate flashcards"
+        });
+    }
+
+
+    const { error: deleteError } = await userSupabase
+    .from("flashcards")
+    .delete()
+    .eq("study_material_id", materialId);
+
+    if (deleteError)
+    {
+        return response.status(500).json({
+            error: "Failed to replace old flashcards"
+        });
+    }
+
+
+    const flashcardsRows = parsedFlashcards.flashcards.map((flashcard, index) => ({
+        "study_material_id": materialId,
+        "question": flashcard.question,
+        "answer": flashcard.answer,
+        "position": index + 1,
+    }));
+
+
+    const {data: savedFlashcards, error: insertError} = await userSupabase
+    .from("flashcards")
+    .insert(flashcardsRows)
+    .select();
+
+    if(insertError)
+    {
+        return response.status(500).json({
+            error: "Failed to save flashcards"
+        });
+    }
+
+    return response.json({
+        flashcards: savedFlashcards
+    })
+});
+
+
+
+
+
+//run function when server starts
+app.listen(3000, () => {
+
+    console.log("StudyBuddy backend running on port 3000");
 });
