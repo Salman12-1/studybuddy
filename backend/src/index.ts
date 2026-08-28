@@ -7,6 +7,7 @@ import { PDFParse } from "pdf-parse";
 import openai from "./lib/openai";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
+import { de } from "zod/v4/locales";
 
 const FlashcardsResponse = z.object({
     flashcards: z.array(
@@ -17,7 +18,15 @@ const FlashcardsResponse = z.object({
     ),
 });
 
-
+const QuizResponse = z.object({
+    questions: z.array(
+        z.object({
+            question: z.string(),
+            options: z.array(z.string()).length(4),
+            correct_option: z.number().int().min(0).max(3),
+        })
+    ),
+});
 
 const app = express();
 
@@ -325,8 +334,6 @@ app.post("/api/materials/:id/flashcards", requireAuth, async (request, response)
         });
     }
 
-
-
     
     if (!parsedFlashcards)
     {
@@ -334,6 +341,13 @@ app.post("/api/materials/:id/flashcards", requireAuth, async (request, response)
             error: "Failed to generate flashcards"
         });
     }
+
+    const flashcardsRows = parsedFlashcards.flashcards.map((flashcard, index) => ({
+        "study_material_id": materialId,
+        "question": flashcard.question,
+        "answer": flashcard.answer,
+        "position": index + 1,
+    }));
 
 
     const { error: deleteError } = await userSupabase
@@ -348,13 +362,6 @@ app.post("/api/materials/:id/flashcards", requireAuth, async (request, response)
         });
     }
 
-
-    const flashcardsRows = parsedFlashcards.flashcards.map((flashcard, index) => ({
-        "study_material_id": materialId,
-        "question": flashcard.question,
-        "answer": flashcard.answer,
-        "position": index + 1,
-    }));
 
 
     const {data: savedFlashcards, error: insertError} = await userSupabase
@@ -375,6 +382,148 @@ app.post("/api/materials/:id/flashcards", requireAuth, async (request, response)
 });
 
 
+
+app.post("/api/materials/:id/quiz", requireAuth, async (request, response) => {
+
+    const materialId = request.params.id;
+    const token = response.locals.accessToken;
+
+    const userSupabase = createUserSupabaseClient(token);
+
+    const {data, error} = await userSupabase
+    .from("study_materials")
+    .select("id, file_name, extracted_text")
+    .eq("id", materialId)
+    .maybeSingle();
+
+    if(error)
+    {
+        return response.status(500).json({
+            error: "Failed to load material"
+        });
+    }
+    if(!data)
+    {
+        return response.status(404).json({
+            error: "Material not found"
+        });
+    }
+    if(!data.extracted_text)
+    {
+        return response.status(400).json({
+            error: "Material has not been extracted yet"
+        });
+    }
+
+
+    const textLength = data.extracted_text.length;
+
+    let quizQuestionCount = 5;
+
+    if (textLength > 12000)
+    {
+        quizQuestionCount = 10;
+    }
+
+    if (textLength > 25000)
+    {
+        quizQuestionCount = 15;
+    }
+
+    let parsedQuiz;
+
+    try
+    {
+        const aiResponse = await openai.responses.parse({
+             model: "gpt-5.6-luna",
+
+            input: `
+                You are a study assistant.
+
+                Generate exactly ${quizQuestionCount} multiple-choice quiz questions
+                from the study material below.
+
+                Each question must have exactly 4 answer options.
+
+                Rules:
+                - Focus on the most important concepts.
+                - Each question should test one clear idea.
+                - Include only one correct answer per question.
+                - Keep questions and options concise and clear.
+                - Stay faithful to the source material.
+                - Do not invent facts, examples, numbers, definitions, or terminology.
+                - If something is not stated in the source, do not include it.
+                - Avoid duplicate or nearly identical questions.
+
+                Study material:
+                ${data.extracted_text}
+            `,
+
+            text: {
+                format: zodTextFormat(
+                    QuizResponse,
+                    "quiz_response"
+                ),
+            },
+        });
+        parsedQuiz = aiResponse.output_parsed;
+    }
+
+    catch(aiError)
+    {
+        console.error(aiError);
+
+        return response.status(500).json({
+            error: "Failed to generate quiz"
+        });
+    }
+
+
+    if (!parsedQuiz)
+    {
+        return response.status(500).json({
+            error: "Failed to generate quiz"
+        });
+    }
+
+    const quizRows = parsedQuiz.questions.map((quiz, index) => ({
+        "study_material_id": materialId,
+        "question": quiz.question,
+        "options": quiz.options,
+        "correct_option": quiz.correct_option,
+        "position": index + 1 
+    }));
+
+
+    const {error: deleteError} = await userSupabase
+    .from("quiz_questions")
+    .delete()
+    .eq("study_material_id", materialId);
+
+    if(deleteError)
+    {
+        return response.status(500).json({
+            error: "Failed to replace old quiz"
+        });
+    }
+
+
+    const {data: savedQuestions, error: insertError} = await userSupabase
+    .from("quiz_questions")
+    .insert(quizRows)
+    .select();
+
+    if(insertError)
+    {
+        return response.status(500).json({
+            error: "Failed to save quiz"
+        });
+    }
+
+    return response.json({
+        questions: savedQuestions
+    });
+});
 
 
 

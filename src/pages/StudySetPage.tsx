@@ -26,6 +26,16 @@ type Flashcard =
     answer: string;
     position: number;
 };
+type QuizQuestion = 
+{
+    id: string;
+    study_material_id: string;
+    question: string;
+    options: string[];
+    correct_option: number;
+    position: number;
+};
+
 
 function StudySetPage()
 {
@@ -33,16 +43,77 @@ function StudySetPage()
     const [loading, setLoading] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+
     const [explanations, setExplanations] = useState<Record<string, string>>({});
     const [explainingIds, setExplainingIds] = useState<Set<string>>(new Set());
     const [explainErrors, setExplainErrors] = useState<Record<string, string>>({});
+
     const [flashcardsByMaterial, setFlashcardsByMaterial] = useState<Record<string, Flashcard[]>>({});
     const [generatingFlashcardIds, setGeneratingFlashcardIds] = useState<Set<string>>(new Set());
     const [flashcardErrors, setFlashcardErrors] = useState<Record<string, string>>({});
     const [flashcardIndexes, setFlashcardIndexes] = useState<Record<string, number>>({});
     const [shownAnswerIds, setShownAnswerIds] = useState<Set<string>>(new Set());
+
+    const [quizQuestionsByMaterial, setQuizQuestionsByMaterial] = useState<Record<string, QuizQuestion[]>>({});
+    const [generatingQuizIds, setGeneratingQuizIds] = useState<Set<string>>(new Set());
+    const [quizIndexes, setQuizIndexes] = useState<Record<string, number>>({});
+    const [quizAnswersByMaterial, setQuizAnswersByMaterial] = useState<Record<string, Record<string, number>>>({});
+
     const { id } = useParams();
     const { session } = useAuth();
+
+    async function generateQuiz(materialId: string)
+    {
+        if(!session)
+        {
+            console.error("No session");
+            return;
+        }
+
+        setGeneratingQuizIds((prev) => {
+            const next = new Set(prev);
+            next.add(materialId);
+            return next;
+        });
+
+        try
+        {
+            const url = `http://localhost:3000/api/materials/${materialId}/quiz`;
+
+            const response = await fetch(url ,{
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if(!response.ok)
+            {
+                console.error(data.error);
+                return;
+            }
+
+            setQuizQuestionsByMaterial((prev) => ({
+                ...prev,
+                [materialId]: data.questions,
+            }));
+        }
+        catch (error)
+        {
+            console.error(error);
+        }
+        finally
+        {
+            setGeneratingQuizIds((prev) => {
+                const next = new Set(prev);
+                next.delete(materialId);
+                return next;
+            });
+        }
+
+    }
 
 
     async function loadFlashcards(materialIds: string[])
@@ -406,13 +477,37 @@ function StudySetPage()
                                     ? "Regenerate" : "Explain"}
                         </button>
                         
+
                         <button onClick={() => generateFlashcards(material.id)} disabled={generatingFlashcardIds.has(material.id)}>
                             {generatingFlashcardIds.has(material.id)
                                 ? "Generating Flashcards..."
                                 : flashcardsByMaterial[material.id]?.length
                                     ? "Regenerate Flashcards" : "Generate Flashcards"}
                         </button>
-                            
+                        
+
+                        <button onClick={() => generateQuiz(material.id)} disabled={generatingQuizIds.has(material.id)}>
+                            {generatingQuizIds.has(material.id)
+                                ? "Generating Quiz..."
+                                : quizQuestionsByMaterial[material.id]?.length
+                                    ? "Regenerate Quiz"
+                                    : "Generate Quiz"
+                            }
+                        </button>
+
+
+                        {explainErrors[material.id] && (
+                            <p>{explainErrors[material.id]}</p>
+                        )}
+
+                        {explanations[material.id] && (
+                            <div>
+                                <h4>Explanation</h4>
+                                <ReactMarkdown>{explanations[material.id]}</ReactMarkdown>
+                            </div>
+                        )}
+
+
                         {flashcardErrors[material.id] && (
                             <p>{flashcardErrors[material.id]}</p>
                         )}
@@ -481,18 +576,8 @@ function StudySetPage()
                         )}
 
 
+                        
 
-
-                        {explainErrors[material.id] && (
-                            <p>{explainErrors[material.id]}</p>
-                        )}
-
-                        {explanations[material.id] && (
-                            <div>
-                                <h4>Explanation</h4>
-                                <ReactMarkdown>{explanations[material.id]}</ReactMarkdown>
-                            </div>
-                        )}
                     </div>
                 );
             })}
