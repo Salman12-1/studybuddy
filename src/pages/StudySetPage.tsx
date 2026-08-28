@@ -21,6 +21,7 @@ type StudyMaterial=
 type Flashcard = 
 {
     id: string;
+    study_material_id: string;
     question: string;
     answer: string;
     position: number;
@@ -37,9 +38,49 @@ function StudySetPage()
     const [explainErrors, setExplainErrors] = useState<Record<string, string>>({});
     const [flashcardsByMaterial, setFlashcardsByMaterial] = useState<Record<string, Flashcard[]>>({});
     const [generatingFlashcardIds, setGeneratingFlashcardIds] = useState<Set<string>>(new Set());
+    const [flashcardErrors, setFlashcardErrors] = useState<Record<string, string>>({});
+    const [flashcardIndexes, setFlashcardIndexes] = useState<Record<string, number>>({});
+    const [shownAnswerIds, setShownAnswerIds] = useState<Set<string>>(new Set());
     const { id } = useParams();
     const { session } = useAuth();
 
+
+    async function loadFlashcards(materialIds: string[])
+    {   
+        if(materialIds.length === 0)
+        {
+            setFlashcardsByMaterial({});
+            return;
+        }
+
+        const {data, error} = await supabase
+        .from("flashcards")
+        .select("id, study_material_id, question, answer, position")
+        .in("study_material_id", materialIds)
+        .order("position", { ascending: true });
+        
+        if(error)
+        {
+            console.error(error);
+            return;
+        }
+
+
+        const groupedFlashcards: Record<string, Flashcard[]> = {};
+
+        data.forEach((flashcard) => {
+            if (!groupedFlashcards[flashcard.study_material_id])
+            {
+                groupedFlashcards[flashcard.study_material_id] = [];
+            }
+            groupedFlashcards[flashcard.study_material_id].push(flashcard);
+        });
+
+        setFlashcardsByMaterial(groupedFlashcards);
+    }
+
+
+    
     async function generateFlashcards(materialId: string)
     {
         if(!session)
@@ -48,6 +89,12 @@ function StudySetPage()
             return;
         }
         
+        setFlashcardErrors((prev) => {
+            const next = { ...prev };
+            delete next[materialId];
+            return next;
+        });
+
 
         setGeneratingFlashcardIds((prev) => {
             const next = new Set(prev);
@@ -71,6 +118,12 @@ function StudySetPage()
             if (!response.ok)
             {
                 console.error(data.error);
+                
+                setFlashcardErrors((prev) => ({
+                    ...prev,
+                    [materialId]: data.error,
+                }));
+
                 return;
             }
 
@@ -79,10 +132,21 @@ function StudySetPage()
                 ...prev,
                 [materialId]: data.flashcards,
             }));
+
+            setShownAnswerIds((prev) => {
+                const next = new Set(prev);
+                next.delete(materialId);
+                return next;
+            });
         }
         catch (error)
         {
             console.error(error);
+
+            setFlashcardErrors((prev) => ({
+                ...prev,
+                [materialId]: "Could not connect to the server",
+            }));
         }
         finally
         {
@@ -291,6 +355,9 @@ function StudySetPage()
             }
         });
 
+        const materialIds = data.map((material) => material.id);
+        await loadFlashcards(materialIds)
+
         setExplanations(savedExplanations);
     }
 
@@ -323,53 +390,112 @@ function StudySetPage()
             <h4>Materials</h4>
             {materials.length === 0 && <p>No materials uploaded yet.</p>}
 
-            {materials.map((material) => (
-                <div key={material.id}>
-                    <h5>{material.file_name}</h5>
-                    <button onClick={() => explainMaterial(material.id)} disabled={explainingIds.has(material.id)}>
-                        {explainingIds.has(material.id)
-                            ? "Generating..."
-                            : explanations[material.id]
-                                ? "Regenerate" : "Explain"}
-                    </button>
-                    
-                    <button onClick={() => generateFlashcards(material.id)} disabled={generatingFlashcardIds.has(material.id)}>
-                        {generatingFlashcardIds.has(material.id)
-                            ? "Generating Flashcards..."
-                            : "Generate Flashcards"}
-                    </button>
-                    
+            {materials.map((material) => {
 
-                    {flashcardsByMaterial[material.id] && (
-                        <div>
-                            <h4>Flashcards</h4>
+                const cards = flashcardsByMaterial[material.id];
+                const currentIndex = flashcardIndexes[material.id] ?? 0;
+                const currentFlashcard = cards?.[currentIndex];
 
-                            {[...flashcardsByMaterial[material.id]]
-                                .sort((a, b) => a.position - b.position)
-                                .map((flashcard) => (
-                                    <div key={flashcard.id}>
-                                        <p><strong>Question:</strong> {flashcard.question}</p>
-                                        <p><strong>Answer:</strong> {flashcard.answer}</p>
-                                    </div>
-                                ))}
-                        </div>
-                    )}
+                return(
+                    <div key={material.id}>
+                        <h5>{material.file_name}</h5>
+                        <button onClick={() => explainMaterial(material.id)} disabled={explainingIds.has(material.id)}>
+                            {explainingIds.has(material.id)
+                                ? "Generating..."
+                                : explanations[material.id]
+                                    ? "Regenerate" : "Explain"}
+                        </button>
+                        
+                        <button onClick={() => generateFlashcards(material.id)} disabled={generatingFlashcardIds.has(material.id)}>
+                            {generatingFlashcardIds.has(material.id)
+                                ? "Generating Flashcards..."
+                                : flashcardsByMaterial[material.id]?.length
+                                    ? "Regenerate Flashcards" : "Generate Flashcards"}
+                        </button>
+                            
+                        {flashcardErrors[material.id] && (
+                            <p>{flashcardErrors[material.id]}</p>
+                        )}
+
+                        {currentFlashcard && (
+                            <div> 
+                                <h4>Flashcards</h4>
+                                <p>Card {currentIndex + 1} of {cards.length}</p>
+                                <p><strong>Question: </strong> {currentFlashcard.question}</p>
+                                
+                                {shownAnswerIds.has(material.id) ? (
+                                    <p><strong>Answer:</strong> {currentFlashcard.answer}</p>
+                                ) : (
+                                    <button onClick={() => {
+                                        setShownAnswerIds((prev) => {
+                                            const next = new Set(prev);
+                                            next.add(material.id);
+                                            return next;
+                                        });
+                                    }}>
+
+                                        Show Answer
+                                    
+                                    </button>
+                                )}
+
+
+                                <button 
+                                    disabled = {currentIndex === 0} 
+                                    onClick={() => {
+                                        setFlashcardIndexes((prev) => ({
+                                            ...prev,
+                                            [material.id]: currentIndex - 1,
+                                        }));
+
+                                        setShownAnswerIds((prev) => {
+                                            const next = new Set(prev);
+                                            next.delete(material.id);
+                                            return next;
+                                        });
+                                    }}
+                                >
+                                    Previous
+                                </button>
+
+
+
+                                <button
+                                    disabled={currentIndex === cards.length - 1}
+                                    onClick={() => {
+                                        setFlashcardIndexes((prev) => ({
+                                            ...prev,
+                                            [material.id]: currentIndex + 1,
+                                        }));
+
+                                        setShownAnswerIds((prev) => {
+                                            const next = new Set(prev);
+                                            next.delete(material.id);
+                                            return next;
+                                        });
+                                    }}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
 
 
 
 
-                    {explainErrors[material.id] && (
-                        <p>{explainErrors[material.id]}</p>
-                    )}
+                        {explainErrors[material.id] && (
+                            <p>{explainErrors[material.id]}</p>
+                        )}
 
-                    {explanations[material.id] && (
-                        <div>
-                            <h4>Explanation</h4>
-                            <ReactMarkdown>{explanations[material.id]}</ReactMarkdown>
-                        </div>
-                    )}
-                </div>
-            ))}
+                        {explanations[material.id] && (
+                            <div>
+                                <h4>Explanation</h4>
+                                <ReactMarkdown>{explanations[material.id]}</ReactMarkdown>
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
         </>
     );
 }
