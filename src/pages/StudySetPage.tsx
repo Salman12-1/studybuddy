@@ -58,9 +58,48 @@ function StudySetPage()
     const [generatingQuizIds, setGeneratingQuizIds] = useState<Set<string>>(new Set());
     const [quizIndexes, setQuizIndexes] = useState<Record<string, number>>({});
     const [quizAnswersByMaterial, setQuizAnswersByMaterial] = useState<Record<string, Record<string, number>>>({});
+    const [quizScore, setQuizScore] = useState<Record<string, number>>({});
+    const [quizError, setQuizErrors] = useState<Record<string, string>>({});
+
+    const [studyMode, setStudyMode] = useState<Record<string, "explain" | "flashcards" | "quiz">>({});
 
     const { id } = useParams();
     const { session } = useAuth();
+
+
+    async function loadQuizQuestions(materialIds: string[])
+    {
+        if(materialIds.length === 0)
+        {
+            setQuizQuestionsByMaterial({});
+            return;
+        }
+
+        const {data, error} = await supabase
+        .from("quiz_questions")
+        .select("id, study_material_id, question, options, correct_option, position")
+        .in("study_material_id", materialIds)
+        .order("position", { ascending: true });
+
+        if(error)
+        {
+            console.error(error);
+            return;
+        }
+
+        const groupedQuizQuestions: Record<string, QuizQuestion[]> = {};
+
+        data.forEach((question) => {
+            if (!groupedQuizQuestions[question.study_material_id])
+            {
+                groupedQuizQuestions[question.study_material_id] = [];
+            }
+            groupedQuizQuestions[question.study_material_id].push(question);
+        });
+
+        setQuizQuestionsByMaterial(groupedQuizQuestions);
+    }
+
 
     async function generateQuiz(materialId: string)
     {
@@ -73,6 +112,12 @@ function StudySetPage()
         setGeneratingQuizIds((prev) => {
             const next = new Set(prev);
             next.add(materialId);
+            return next;
+        });
+
+        setQuizErrors((prev) => {
+            const next = { ...prev };
+            delete next[materialId];
             return next;
         });
 
@@ -92,17 +137,43 @@ function StudySetPage()
             if(!response.ok)
             {
                 console.error(data.error);
+
+                setQuizErrors((prev) => ({
+                    ...prev,
+                    [materialId]: data.error,    
+                }));
                 return;
             }
+
 
             setQuizQuestionsByMaterial((prev) => ({
                 ...prev,
                 [materialId]: data.questions,
             }));
+
+            setQuizIndexes((prev) => ({
+                ...prev,
+                [materialId]: 0,
+            }));
+
+            setQuizAnswersByMaterial((prev) => ({
+                ...prev,
+                [materialId]: {},
+            }));
+
+            setQuizScore((prev) => {
+                const next = { ...prev };
+                delete next[materialId];
+                return next;
+            });
         }
         catch (error)
         {
             console.error(error);
+            setQuizErrors((prev) => ({
+                ...prev,
+                [materialId]: "Could not connect to the server",    
+            }));
         }
         finally
         {
@@ -172,6 +243,12 @@ function StudySetPage()
             next.add(materialId);
             return next;
         });
+
+        setFlashcardIndexes((prev) => ({
+            ...prev,
+            [materialId]: 0,
+        }));
+
 
         try
         {
@@ -428,6 +505,7 @@ function StudySetPage()
 
         const materialIds = data.map((material) => material.id);
         await loadFlashcards(materialIds)
+        await loadQuizQuestions(materialIds)
 
         setExplanations(savedExplanations);
     }
@@ -466,33 +544,48 @@ function StudySetPage()
                 const cards = flashcardsByMaterial[material.id];
                 const currentIndex = flashcardIndexes[material.id] ?? 0;
                 const currentFlashcard = cards?.[currentIndex];
+                
+                const quizQuestions = quizQuestionsByMaterial[material.id];
+                const currentQuizIndex = quizIndexes[material.id] ?? 0;
+                const currentQuizQuestion = quizQuestions?.[currentQuizIndex];  
+                const selectedQuizAnswer = currentQuizQuestion ? quizAnswersByMaterial[material.id]?.[currentQuizQuestion.id] : undefined;
+                let score = 0;
 
                 return(
                     <div key={material.id}>
                         <h5>{material.file_name}</h5>
-                        <button onClick={() => explainMaterial(material.id)} disabled={explainingIds.has(material.id)}>
-                            {explainingIds.has(material.id)
-                                ? "Generating..."
-                                : explanations[material.id]
-                                    ? "Regenerate" : "Explain"}
+                        <button  
+                        onClick={() => {
+                            setStudyMode((prev) => ({
+                                ...prev,
+                                [material.id]: "explain",
+                            }));
+                        }}>
+                            Explanation
                         </button>
                         
 
-                        <button onClick={() => generateFlashcards(material.id)} disabled={generatingFlashcardIds.has(material.id)}>
-                            {generatingFlashcardIds.has(material.id)
-                                ? "Generating Flashcards..."
-                                : flashcardsByMaterial[material.id]?.length
-                                    ? "Regenerate Flashcards" : "Generate Flashcards"}
+                        <button 
+                        onClick={() => {
+                            setStudyMode((prev) => ({
+                                ...prev,
+                                [material.id]: "flashcards",
+                            }));
+                        }}>
+
+                            Flashcards
                         </button>
                         
 
-                        <button onClick={() => generateQuiz(material.id)} disabled={generatingQuizIds.has(material.id)}>
-                            {generatingQuizIds.has(material.id)
-                                ? "Generating Quiz..."
-                                : quizQuestionsByMaterial[material.id]?.length
-                                    ? "Regenerate Quiz"
-                                    : "Generate Quiz"
-                            }
+                        <button 
+                        onClick={() => {
+                            setStudyMode((prev) => ({
+                                ...prev,
+                                [material.id]: "quiz",
+                            }));
+                        }}>
+
+                            Quiz
                         </button>
 
 
@@ -500,10 +593,36 @@ function StudySetPage()
                             <p>{explainErrors[material.id]}</p>
                         )}
 
-                        {explanations[material.id] && (
+                        {studyMode[material.id] === "explain" && (
                             <div>
-                                <h4>Explanation</h4>
-                                <ReactMarkdown>{explanations[material.id]}</ReactMarkdown>
+                                {explanations[material.id] ? (
+                                <>
+                                    <h4>Explanation</h4>
+                                    <ReactMarkdown>{explanations[material.id]}</ReactMarkdown>
+                                    <button 
+                                    disabled={explainingIds.has(material.id)}
+                                    onClick={() => explainMaterial(material.id)}>
+                                        {explainingIds.has(material.id)
+                                            ? "Generating..."
+                                            :"Regenerate Explanation"
+                                        } 
+                                    </button>
+                                </>
+                                ) :
+                                (
+                                    <>
+                                        <h4>No explanation generated yet.</h4>
+                                        <button 
+                                        disabled={explainingIds.has(material.id)}
+                                        onClick={() => explainMaterial(material.id)}>
+                                            {explainingIds.has(material.id)
+                                                ? "Generating..."
+                                                :"Generate Explanation"
+                                            } 
+                                        </button>
+                                    </>
+                                )}
+                                
                             </div>
                         )}
 
@@ -512,70 +631,241 @@ function StudySetPage()
                             <p>{flashcardErrors[material.id]}</p>
                         )}
 
-                        {currentFlashcard && (
+                        {studyMode[material.id] === "flashcards"  && (
                             <div> 
-                                <h4>Flashcards</h4>
-                                <p>Card {currentIndex + 1} of {cards.length}</p>
-                                <p><strong>Question: </strong> {currentFlashcard.question}</p>
-                                
-                                {shownAnswerIds.has(material.id) ? (
-                                    <p><strong>Answer:</strong> {currentFlashcard.answer}</p>
-                                ) : (
-                                    <button onClick={() => {
-                                        setShownAnswerIds((prev) => {
-                                            const next = new Set(prev);
-                                            next.add(material.id);
-                                            return next;
-                                        });
-                                    }}>
+                                {currentFlashcard ? (
+                                    <>
+                                        <h4>Flashcards</h4>
+                                        <p>Card {currentIndex + 1} of {cards.length}</p>
+                                        <p><strong>Question: </strong> {currentFlashcard.question}</p>
+                                        
+                                        {shownAnswerIds.has(material.id) ? (
+                                            <p><strong>Answer:</strong> {currentFlashcard.answer}</p>
+                                        ) : (
+                                            <button onClick={() => {
+                                                setShownAnswerIds((prev) => {
+                                                    const next = new Set(prev);
+                                                    next.add(material.id);
+                                                    return next;
+                                                });
+                                            }}>
 
-                                        Show Answer
-                                    
-                                    </button>
+                                                Show Answer
+                                            
+                                            </button>
+                                        )}
+
+
+                                        <button 
+                                            disabled = {currentIndex === 0} 
+                                            onClick={() => {
+                                                setFlashcardIndexes((prev) => ({
+                                                    ...prev,
+                                                    [material.id]: currentIndex - 1,
+                                                }));
+
+                                                setShownAnswerIds((prev) => {
+                                                    const next = new Set(prev);
+                                                    next.delete(material.id);
+                                                    return next;
+                                                });
+                                            }}
+                                        >
+                                            Previous
+                                        </button>
+
+
+
+                                        <button
+                                            disabled={currentIndex === cards.length - 1}
+                                            onClick={() => {
+                                                setFlashcardIndexes((prev) => ({
+                                                    ...prev,
+                                                    [material.id]: currentIndex + 1,
+                                                }));
+
+                                                setShownAnswerIds((prev) => {
+                                                    const next = new Set(prev);
+                                                    next.delete(material.id);
+                                                    return next;
+                                                });
+                                            }}
+                                        >
+                                            Next
+                                        </button>
+
+                                        <button
+                                        disabled={generatingFlashcardIds.has(material.id)}
+                                        onClick={() => generateFlashcards(material.id)}
+                                        >
+                                            {generatingFlashcardIds.has(material.id)
+                                                ? "Generating..."
+                                                :"Regenerate flashcards"
+                                            } 
+                                        </button>
+                                    </>
+                                ) 
+                                :(
+                                    <>
+                                        <h4>No flashcards generated yet.</h4>
+                                        <button 
+                                        disabled={generatingFlashcardIds.has(material.id)}
+                                        onClick={() => generateFlashcards(material.id)}
+                                        >
+                                            {generatingFlashcardIds.has(material.id)
+                                                ? "Generating..."
+                                                :"Generate Flashcards"
+                                            } 
+                                        </button>
+                                    </>
                                 )}
-
-
-                                <button 
-                                    disabled = {currentIndex === 0} 
-                                    onClick={() => {
-                                        setFlashcardIndexes((prev) => ({
-                                            ...prev,
-                                            [material.id]: currentIndex - 1,
-                                        }));
-
-                                        setShownAnswerIds((prev) => {
-                                            const next = new Set(prev);
-                                            next.delete(material.id);
-                                            return next;
-                                        });
-                                    }}
-                                >
-                                    Previous
-                                </button>
-
-
-
-                                <button
-                                    disabled={currentIndex === cards.length - 1}
-                                    onClick={() => {
-                                        setFlashcardIndexes((prev) => ({
-                                            ...prev,
-                                            [material.id]: currentIndex + 1,
-                                        }));
-
-                                        setShownAnswerIds((prev) => {
-                                            const next = new Set(prev);
-                                            next.delete(material.id);
-                                            return next;
-                                        });
-                                    }}
-                                >
-                                    Next
-                                </button>
                             </div>
                         )}
 
+                        {quizError[material.id] && 
+                            <p>{quizError[material.id]}</p>
+                        }
 
+                        {studyMode[material.id] === "quiz" && (
+                            <div>
+                                {currentQuizQuestion ? 
+                                (
+                                    <>
+                                        <h4>Quiz</h4>
+
+                                        <p>
+                                            Question {currentQuizIndex + 1} of {quizQuestions.length}
+                                        </p>
+
+                                        <p>
+                                            <strong>{currentQuizQuestion.question}</strong>
+                                        </p>
+
+                                        {currentQuizQuestion.options.map((option, optionIndex) => (
+                                            <div key={optionIndex}>
+                                                <label>
+                                                    <input type="radio" name={currentQuizQuestion.id} checked={selectedQuizAnswer === optionIndex} 
+                                                    disabled={quizScore[material.id] !== undefined}
+                                                    onChange={() => {
+                                                        setQuizAnswersByMaterial((prev) => ({
+                                                                ...prev,
+                                                                [material.id]   : 
+                                                                {
+                                                                    ...prev[material.id],
+                                                                    [currentQuizQuestion.id]: optionIndex,
+                                                                },
+                                                            }));  
+                                                        }}
+                                                    />
+                                                    {option} 
+                                                </label>
+                                                
+                                            </div>
+                                        ))}
+
+
+                                        {quizScore[material.id] !== undefined &&
+                                            <p>{selectedQuizAnswer === currentQuizQuestion.correct_option ? "Correct" : "Incorrect"}</p>
+                                        }
+
+                                        {quizScore[material.id] !== undefined && selectedQuizAnswer !== currentQuizQuestion.correct_option &&
+                                            <p>Correct Answer: {currentQuizQuestion.options[currentQuizQuestion.correct_option]}</p>
+                                        }
+
+
+                                        <button 
+                                            disabled={currentQuizIndex === 0} 
+                                            onClick={() => {
+                                                setQuizIndexes((prev) => ({
+                                                    ...prev,
+                                                    [material.id]: currentQuizIndex - 1,
+                                                }));
+                                            }}>
+                                                Previous
+                                            </button>
+
+                                            <button
+                                            hidden={currentQuizIndex === quizQuestions.length - 1}
+                                            onClick={ () => {
+                                                setQuizIndexes((prev) => ({
+                                                    ...prev,
+                                                    [material.id]: currentQuizIndex + 1,
+                                                }))
+                                            }}>
+                                                Next
+                                            </button>
+
+                                            <button
+                                            hidden={currentQuizIndex !== quizQuestions.length - 1}
+                                            onClick={() => {
+                                                quizQuestions.forEach((question) => {
+                                                    if (question.correct_option === quizAnswersByMaterial[material.id]?.[question.id])
+                                                    {
+                                                        score += 1;
+                                                    }
+                                                })
+                                                setQuizScore((prev) => ({
+                                                    ...prev,
+                                                    [material.id]: score,
+                                                }));
+                                            }}>
+                                                Submit
+                                            </button>
+
+
+                                            <button
+                                            hidden={quizScore[material.id] === undefined}
+                                            onClick={() => {
+                                                setQuizScore((prev) => {
+                                                    const next = { ...prev };
+                                                    delete next[material.id];
+                                                    return next;
+                                                });
+
+                                                setQuizAnswersByMaterial((prev) => ({
+                                                    ...prev,
+                                                    [material.id]: {},
+                                                }));
+
+                                                setQuizIndexes((prev) => ({
+                                                    ...prev,
+                                                    [material.id]: 0,
+                                                }));
+                                            }}>
+                                                Retry Quiz
+                                            </button>
+
+
+                                            {quizScore[material.id] !== undefined && (
+                                                <p>Your Score: {quizScore[material.id]} / {quizQuestions.length}</p>
+                                            )}
+
+                                            <button 
+                                            disabled={generatingQuizIds.has(material.id)}
+                                            onClick={() => generateQuiz(material.id)}>
+                                                {generatingQuizIds.has(material.id)
+                                                    ? "Generating..."
+                                                    :"Regenerate Quiz"
+                                                } 
+                                            </button>
+                                    </>
+                                ) 
+                                :(
+                                    <>
+                                        <h4>No quiz generated yet.</h4>
+                                        <button 
+                                        disabled={generatingQuizIds.has(material.id)}
+                                        onClick={() => generateQuiz(material.id)}>
+                                            {generatingQuizIds.has(material.id)
+                                                ? "Generating..."
+                                                :"Generate Quiz"
+                                            } 
+                                        </button>
+                                    </>
+                                )}
+                                
+                            </div>
+                        )}
                         
 
                     </div>
