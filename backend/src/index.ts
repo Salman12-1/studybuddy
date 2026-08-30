@@ -200,7 +200,8 @@ app.post("/api/materials/:id/explain", requireAuth, async (request, response) =>
                 - Keep the explanation reasonably short.
                 - Do not add conclusions, implications, or advice that are not explicitly supported by the source material.
                 - If something is not stated in the source, omit it.
-
+                - Use Markdown formatting.
+                - For mathematical expressions, use $...$ for inline math and $$...$$ for displayed equations. Do not use \[...\] or raw LaTeX without math delimiters.
                 Study material:
                 ${data.extracted_text}
             `,
