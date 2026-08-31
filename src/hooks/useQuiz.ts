@@ -135,13 +135,21 @@ function useQuiz()
 
     function selectAnswer(materialId: string, questionId: string, optionIndex: number)
     {
-        setQuizAnswersByMaterial((prev) => ({
-            ...prev,
-            [materialId]: {
-                ...prev[materialId],
-                [questionId]: optionIndex,
-            },
-        }));
+        setQuizAnswersByMaterial((prev) => {
+            const answers = { ...(prev[materialId] ?? {}) };
+            if (answers[questionId] === optionIndex)
+            {
+                delete answers[questionId];
+            }
+            else
+            {
+                answers[questionId] = optionIndex;
+            }
+            return {
+                ...prev,
+                [materialId]: answers,
+            };
+        });
     }    
 
     function retryQuiz(materialId: string)

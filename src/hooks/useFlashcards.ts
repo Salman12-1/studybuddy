@@ -131,12 +131,16 @@ function useFlashcards()
 
     }
 
-
-    function showAnswer(materialId: string)
+    function toggleAnswer(materialId: string)
     {
         setShownAnswerIds((prev) => {
             const next = new Set(prev);
-            next.add(materialId);
+            if(next.has(materialId))
+                next.delete(materialId);
+
+            else
+                next.add(materialId);
+            
             return next;
         });
     }
@@ -177,9 +181,9 @@ function useFlashcards()
         shownAnswerIds,
         loadFlashcards,
         generateFlashcards,
-        showAnswer,
         previousCard,
         nextCard,
+        toggleAnswer,
     };
 }
 

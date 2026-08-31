@@ -1,0 +1,276 @@
+.dashboard-page {
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+
+
+
+
+
+
+.dashboard-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.dashboard-intro {
+  margin-bottom: 40px;
+}
+
+.dashboard-intro h1 {
+  margin-bottom: 8px;
+  font-size: 36px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.dashboard-intro p {
+  margin-bottom: 0;
+  color: var(--color-text-muted);
+  font-size: 16px;
+}
+
+.dashboard-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dashboard-section-header h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.create-study-set-button {
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+
+  background: var(--color-primary);
+  color: white;
+
+  font-weight: 600;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.create-study-set-button:hover {
+  background: var(--color-primary-hover);
+}
+
+.create-study-set-button:active {
+  transform: translateY(1px);
+}
+
+
+/* Logout */
+
+
+
+
+
+
+/* Study-set grid */
+
+.study-set-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+
+/* Individual study-set card */
+
+.study-set-card {
+  min-height: 150px;
+  padding: 22px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+
+  color: var(--color-text);
+  text-decoration: none;
+
+  box-shadow: var(--shadow-sm);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.study-set-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.study-set-card h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.study-set-card-action {
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+.create-study-set-form {
+  margin-bottom: 24px;
+  padding: 20px;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.create-study-set-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.create-study-set-field label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.create-study-set-field input {
+  width: 100%;
+  padding: 10px 12px;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: var(--color-surface);
+  color: var(--color-text);
+
+  outline: none;
+}
+
+.create-study-set-field input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.create-study-set-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.primary-button,
+.secondary-button {
+  padding: 10px 15px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.primary-button {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: white;
+}
+
+.primary-button:hover {
+  background: var(--color-primary-hover);
+}
+
+.secondary-button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.secondary-button:hover {
+  background: var(--color-background);
+}
+
+
+
+.dashboard-empty {
+  padding: 32px;
+  text-align: center;
+
+  color: var(--color-text-muted);
+
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+
+/* Tablet */
+@media (max-width: 800px) {
+  .study-set-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-container {
+    padding: 36px 20px;
+  }
+}
+
+
+/* Mobile */
+@media (max-width: 600px) {
+  .study-set-card {
+    min-height: 125px;
+  }
+  
+
+  .dashboard-container {
+    padding: 28px 16px;
+  }
+
+  .dashboard-intro {
+    margin-bottom: 32px;
+  }
+
+  .dashboard-intro h1 {
+    font-size: 30px;
+  }
+
+  .dashboard-section-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .create-study-set-button {
+    width: 100%;
+  }
+
+  .study-set-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-study-set-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .create-study-set-actions {
+    justify-content: flex-end;
+  }
+}

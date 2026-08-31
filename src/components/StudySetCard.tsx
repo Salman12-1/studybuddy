@@ -8,11 +8,10 @@ type StudySetCardProps =
 function StudySetCard({id, title}: StudySetCardProps)
 {
     return(
-        <>
-            <Link to={`/study/${id}`}>
-                <h3>{title}</h3>
-            </Link>
-        </>
+        <Link to={`/study/${id}`} className="study-set-card">
+            <h3>{title}</h3>
+            <span className="study-set-card-action"> Open study set → </span>
+        </Link>
     );
 }
 

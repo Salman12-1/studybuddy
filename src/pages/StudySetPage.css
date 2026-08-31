@@ -1,0 +1,172 @@
+.study-set-page {
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+.study-set-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 28px;
+
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  color: var(--color-primary);
+}
+
+.study-set-intro {
+  margin-bottom: 36px;
+}
+
+.study-set-intro h1 {
+  margin-bottom: 8px;
+
+  font-size: 36px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.study-set-intro p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.file-input {
+  display: none;
+}
+
+
+.upload-section {
+  margin-bottom: 44px;
+}
+
+.upload-header {
+  margin-bottom: 16px;
+}
+
+.upload-header h3 {
+  margin-bottom: 6px;
+  font-size: 20px;
+}
+
+.upload-header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.upload-panel {
+  padding: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.upload-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.choose-file-button {
+  flex-shrink: 0;
+
+  padding: 10px 14px;
+
+  background: var(--color-surface);
+  color: var(--color-text);
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.choose-file-button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.selected-file-name {
+  color: var(--color-text-muted);
+  font-size: 14px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-button {
+  flex-shrink: 0;
+
+  padding: 10px 18px;
+
+  border: none;
+  border-radius: var(--radius-md);
+
+  background: var(--color-primary);
+  color: white;
+
+  font-weight: 600;
+}
+
+.upload-button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.upload-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+.study-set-container > h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+@media (max-width: 600px) {
+  .study-set-container {
+    padding: 28px 16px 48px;
+  }
+
+  .study-set-intro h1 {
+    font-size: 30px;
+  }
+
+  .upload-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upload-info {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .selected-file-name {
+    max-width: 100%;
+  }
+
+  .upload-button {
+    width: 100%;
+  }
+}

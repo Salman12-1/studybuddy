@@ -1,0 +1,41 @@
+.app-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-header-content {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 18px 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-brand {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.app-header button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+
+  background: transparent;
+  color: var(--color-text);
+
+  font-weight: 500;
+}
+
+.app-header button:hover {
+  background: var(--color-background);
+}
+
+@media (max-width: 600px) {
+    .app-header-content {
+        padding: 14px 16px;
+    }
+}

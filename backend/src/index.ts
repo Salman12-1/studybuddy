@@ -137,7 +137,7 @@ app.post("/api/materials/:id/explain", requireAuth, async (request, response) =>
 
     const{ data, error } = await userSupabase
     .from("study_materials")
-    .select("id, file_name, extracted_text")
+    .select("id, file_name, extracted_text, explanation")
     .eq("id", materialId)
     .maybeSingle();
 
@@ -162,6 +162,28 @@ app.post("/api/materials/:id/explain", requireAuth, async (request, response) =>
             error: "Material has not been extracted yet"
         });
     }
+
+
+
+    const regenerationInstructions =
+    data.explanation
+        ? `
+            A previous explanation of this material already exists.
+
+            Previous explanation:
+            ${data.explanation}
+
+            Create a NEW explanation of the same source material.
+
+            - Use meaningfully different wording and structure.
+            - Explain the same important concepts accurately.
+            - Where helpful, use a different teaching approach or simpler phrasing.
+            - Do not merely paraphrase the previous explanation sentence by sentence.
+            - Do not omit important concepts only for the sake of being different.
+        `
+        : "";
+
+
 
     // Temporary token-limit strategy.
     // Later, when we implement chunking for large PDFs, revisit this logic.
@@ -202,6 +224,8 @@ app.post("/api/materials/:id/explain", requireAuth, async (request, response) =>
                 - If something is not stated in the source, omit it.
                 - Use Markdown formatting.
                 - For mathematical expressions, use $...$ for inline math and $$...$$ for displayed equations. Do not use \[...\] or raw LaTeX without math delimiters.
+                
+                ${regenerationInstructions}
                 Study material:
                 ${data.extracted_text}
             `,
@@ -277,6 +301,43 @@ app.post("/api/materials/:id/flashcards", requireAuth, async (request, response)
     }
     
 
+
+    const { data: oldFlashcards, error: oldFlashcardsError } =
+    await userSupabase
+        .from("flashcards")
+        .select("question, answer")
+        .eq("study_material_id", materialId);
+
+    if (oldFlashcardsError)
+    {
+        return response.status(500).json({
+            error: "Failed to load previous flashcards"
+        });
+    }
+
+    const previousFlashcards = oldFlashcards
+    .map(
+        (flashcard, index) =>
+            `${index + 1}. Question: ${flashcard.question}\nAnswer: ${flashcard.answer}`
+    )
+    .join("\n\n");
+
+    const regenerationInstructions =
+    oldFlashcards.length > 0
+        ? `
+            This material already has flashcards.
+
+            Previous flashcards:
+            ${previousFlashcards}
+
+            Generate a NEW set of flashcards.
+            Do not repeat or closely paraphrase the previous questions.
+            Prefer different important concepts from the study material where possible.
+            If an important concept must be reused, test it from a meaningfully different angle.
+        `
+        : "";
+
+
     const textLength = data.extracted_text.length;
 
     let flashcardCount = 10;
@@ -312,6 +373,7 @@ app.post("/api/materials/:id/flashcards", requireAuth, async (request, response)
                 - If something is not stated in the source, do not include it.
                 - Avoid duplicate or nearly identical flashcards.
 
+                ${regenerationInstructions}
                 Study material:
                 ${data.extracted_text}
             `,
@@ -417,6 +479,44 @@ app.post("/api/materials/:id/quiz", requireAuth, async (request, response) => {
     }
 
 
+
+
+    const { data: oldQuestions, error: oldQuestionsError } =
+    await userSupabase
+        .from("quiz_questions")
+        .select("question")
+        .eq("study_material_id", materialId);
+
+    if (oldQuestionsError)
+    {
+        return response.status(500).json({
+            error: "Failed to load previous quiz"
+        });
+    }
+
+
+    const previousQuestions = oldQuestions
+    .map((item, index) => `${index + 1}. ${item.question}`)
+    .join("\n");
+
+
+    const regenerationInstructions =
+    oldQuestions.length > 0
+    ? `
+        This material already has a quiz.
+
+        Previous quiz questions:
+        ${previousQuestions}
+
+        Generate a NEW set of quiz questions.
+        Do not repeat or closely paraphrase the previous questions.
+        Prefer different concepts from the study material where possible.
+        If an important concept must be reused, test it from a meaningfully different angle.
+    `
+    : "";
+
+
+
     const textLength = data.extracted_text.length;
 
     let quizQuestionCount = 5;
@@ -456,6 +556,7 @@ app.post("/api/materials/:id/quiz", requireAuth, async (request, response) => {
                 - If something is not stated in the source, do not include it.
                 - Avoid duplicate or nearly identical questions.
 
+                ${regenerationInstructions}
                 Study material:
                 ${data.extracted_text}
             `,

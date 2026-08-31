@@ -1,4 +1,4 @@
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
@@ -10,7 +10,8 @@ import useFlashcards from "../hooks/useFlashcards";
 import type { StudySet, StudyMaterial} from "../types/study";
 import useQuiz from "../hooks/useQuiz";
 import StudyMaterialCard from "../components/study/StudyMaterialCard";
-
+import AppHeader from "../components/AppHeader";
+import "./StudySetPage.css";
 
 function StudySetPage()
 {
@@ -37,9 +38,9 @@ function StudySetPage()
         shownAnswerIds,
         loadFlashcards,
         generateFlashcards,
-        showAnswer,
         previousCard,
         nextCard,
+        toggleAnswer,
     } = useFlashcards();
 
     const 
@@ -112,6 +113,40 @@ function StudySetPage()
         setLoading(false);
 
     }
+
+    async function deleteMaterial(material: StudyMaterial)
+    {
+        const confirmed = window.confirm(
+            `Delete "${material.file_name}"? Its explanation, flashcards, and quiz will also be deleted.`
+        );  
+
+        if(!confirmed)
+            return;
+
+        const {error: tableError} = await supabase
+        .from("study_materials")
+        .delete()
+        .eq("id", material.id);
+
+        if(tableError)
+        {
+            console.error(tableError);
+            return;
+        }
+
+
+        const {error: storageError} = await supabase.storage
+        .from("study-materials")
+        .remove([material.storage_path]);
+
+        if(storageError)
+        {
+            console.log(storageError);
+        }
+
+        await loadMaterials();
+    }
+
 
     async function uploadMaterial()
     {
@@ -208,15 +243,59 @@ function StudySetPage()
 
 
     return (
-        <>
-            <h1>{studySet.title}</h1>
-            <input type="file" accept="application/pdf" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}></input>
-            <button onClick={uploadMaterial}>Upload</button>
-            <h3>Study Set ID: {id}</h3>
-            <h4>Materials</h4>
-            {materials.length === 0 && <p>No materials uploaded yet.</p>}
+        <div className="study-set-page">
+            <AppHeader />
 
-            {materials.map((material) => {
+            <main className="study-set-container">
+                <Link to="/dashboard" className="back-link">
+                    ← Back to study sets
+                </Link>
+
+                <div className="study-set-intro">
+                    <h1>{studySet.title}</h1>
+                    <p>Study from your uploaded course material.</p>
+                </div>
+
+                <div className="upload-section">
+                    <header className="upload-header">
+                        <h3>Add study material</h3>
+                        <p>Upload a PDF and StudyBuddy will turn it into explanations, flashcards, and quizzes.</p>
+                    </header>
+                    <div className="upload-panel">
+                        <div className="upload-info">
+                            <input 
+                            id="pdf-upload"
+                            className="file-input"
+                            type="file" 
+                            accept="application/pdf" 
+                            onChange={(event) => 
+                                setSelectedFile(event.target.files?.[0] ?? null)} 
+                            />
+
+                            <label htmlFor="pdf-upload" className="choose-file-button">
+                                Choose PDF
+                            </label>
+
+                            <span className="selected-file-name">
+                                {selectedFile ? selectedFile.name : "No file selected"}
+                            </span>
+                        </div>
+
+                        <button
+                            className="upload-button"
+                            disabled={!selectedFile}
+                            onClick={uploadMaterial}>
+                            Upload
+                        </button>
+                    </div>
+                </div>
+
+
+                <h2>Your Materials</h2>
+                {materials.length === 0 && <p>No materials uploaded yet.</p>}
+
+
+                {materials.map((material) => {
 
                 const cards = flashcardsByMaterial[material.id];
                 const currentIndex = flashcardIndexes[material.id] ?? 0;
@@ -249,7 +328,7 @@ function StudySetPage()
                                 isGenerating={generatingFlashcardIds.has(material.id)}
                                 error={flashcardErrors[material.id]}
                                 onGenerate={() => generateFlashcards(material.id)}
-                                onShowAnswer={() => showAnswer(material.id)}
+                                onToggleAnswer={() => toggleAnswer(material.id)}
                                 onPrevious={() => {previousCard(material.id)}}
                                 onNext={() => {nextCard(material.id)}}
                             />
@@ -274,10 +353,13 @@ function StudySetPage()
                                 onRetry={() => retryQuiz(material.id)}
                             />
                         }
+                        onDelete={() => deleteMaterial(material)}
                     />  
                 );
             })}
-        </>
+
+            </main>
+        </div>
     );
 }
 export default StudySetPage;

@@ -1,0 +1,126 @@
+.study-material-card {
+  margin-bottom: 18px;
+  padding: 22px;
+
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.material-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.material-header h3 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.material-type {
+  flex-shrink: 0;
+
+  padding: 5px 8px;
+
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.material-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.material-tab {
+  padding: 9px 14px;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+
+  font-weight: 600;
+}
+
+.material-tab:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.material-tab.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.study-mode-content:not(:empty) {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+}
+
+.material-delete-button {
+  margin-left: auto;
+  flex-shrink: 0;
+
+  padding: 7px 10px;
+
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+
+  background: transparent;
+  color: var(--color-error);
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.material-delete-button:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+@media (max-width: 600px) {
+  .study-material-card {
+    padding: 18px;
+  }
+
+  .material-header {
+    align-items: flex-start;
+  }
+
+  .material-header h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .material-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .material-tab {
+    padding: 9px 8px;
+  }
+
+   .material-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+  }
+
+  .material-delete-button {
+    margin-left: 0;
+  }
+}

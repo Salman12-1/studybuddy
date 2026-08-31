@@ -1,0 +1,129 @@
+.explanation-mode {
+  color: var(--color-text);
+}
+
+.explanation-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.explanation-header h4 {
+  margin-bottom: 4px;
+  font-size: 20px;
+}
+
+.explanation-header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.explanation-content {
+  max-width: 760px;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.explanation-content h1,
+.explanation-content h2,
+.explanation-content h3,
+.explanation-content h4 {
+  margin-top: 28px;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.explanation-content p {
+  margin-bottom: 16px;
+}
+
+.explanation-content ul,
+.explanation-content ol {
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+
+.explanation-content li {
+  margin-bottom: 6px;
+}
+
+.mode-empty-state {
+  padding: 28px;
+  text-align: center;
+
+  background: var(--color-background);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.mode-empty-state h4 {
+  margin-bottom: 6px;
+}
+
+.mode-empty-state p {
+  margin-bottom: 18px;
+  color: var(--color-text-muted);
+}
+
+.mode-error {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+
+  color: var(--color-error);
+  background: #fef2f2;
+
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+}
+
+.primary-action-button,
+.secondary-action-button {
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+
+  font-weight: 600;
+}
+
+.primary-action-button {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: white;
+}
+
+.primary-action-button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.secondary-action-button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.secondary-action-button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.primary-action-button:disabled,
+.secondary-action-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .explanation-header {
+    flex-direction: column;
+  }
+
+  .secondary-action-button {
+    width: 100%;
+  }
+
+  .explanation-content {
+    max-width: 100%;
+  }
+}

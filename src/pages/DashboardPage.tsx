@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import StudySetCard from "../components/StudySetCard";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import "./DashboardPage.css";
+import AppHeader from "../components/AppHeader";
 
 type StudySet =
 {
@@ -33,15 +35,7 @@ function DashboardPage()
     }
 
 
-    async function handleLogout()
-    {
-        const {error} = await supabase.auth.signOut();
-
-        if (error) 
-        {
-            console.error(error.message);
-        }
-    }
+    
 
     async function createStudySet(event: React.SyntheticEvent<HTMLFormElement>) 
     {
@@ -83,30 +77,68 @@ function DashboardPage()
 
 
     return (
-        <>
-            <h1>StudyBuddy Dashboard</h1>
-            <h2>Your Study Sets</h2>
+        <div className="dashboard-page">
+            <AppHeader/ >
 
-            {!isCreating && <button onClick={() => setIsCreating(true)}>+ Create Study Set</button>}
+            <main className="dashboard-container">
+                <div className="dashboard-intro">
+                    <h1>Dashboard</h1>
+                    <p>Pick up where you left off.</p>
+                </div>
 
-            {isCreating && 
-                <form onSubmit={createStudySet}>
-                    <input type="text" value={newTitle} onChange={(event) => setNewTitle(event.target.value)}/>
-                    <button type="submit">Create</button>
-                    <button type="button" onClick={() => setIsCreating(false)}>Cancel</button>
-                </form>
-            }
-            {studySets.length === 0 && <p>No study sets yet.</p>}
+                <div className="dashboard-section-header">
+                    <h2>Your Study Sets</h2>
 
-            <button onClick={handleLogout}>Logout</button>
-            {studySets.map((studySet) => (
-                <StudySetCard 
-                    key={studySet.id}
-                    id= {studySet.id}
-                    title= {studySet.title}
-                />
-            ))}
-        </>
+                    {!isCreating && 
+                    <button className="create-study-set-button"
+                    onClick={() => setIsCreating(true)}>
+                        + Create Study Set
+                    </button>}
+                </div>
+
+
+                {isCreating && 
+                    <form onSubmit={createStudySet} className="create-study-set-form">
+                        <div className="create-study-set-field">
+                            <label htmlFor="study-set-title">Study set name</label>
+                            <input
+                                id="study-set-title"
+                                type="text"
+                                placeholder="e.g. Operating Systems"
+                                value={newTitle}
+                                onChange={(event) => setNewTitle(event.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <div className="create-study-set-actions">
+                            <button className="secondary-button" type="button" onClick={() => setIsCreating(false)}>
+                                Cancel
+                            </button>
+
+                            <button className="primary-button" type="submit">
+                                Create Study Set
+                            </button>
+                        </div>
+                    </form>
+                }
+
+                {studySets.length === 0 && (
+                    <p className="dashboard-empty">
+                        No study sets yet. Create one to get started.
+                    </p>
+                )}
+
+                <div className="study-set-grid">
+                    {studySets.map((studySet) => (
+                        <StudySetCard 
+                            key={studySet.id}
+                            id= {studySet.id}
+                            title= {studySet.title}
+                        />
+                    ))}
+                </div>
+            </main>
+        </div>
     );
 }
 
