@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { supabase } from "../lib/supabase";
+import "./Auth.css";
 
 function RegisterPage()
 {
@@ -50,23 +51,82 @@ function RegisterPage()
 
 
     return (
-        <>
-            <h1>Register Page.</h1>
-            <Link to="/">Back Home</Link>
-            <Link to="/login">Already have an account? Login</Link>
+        <div className="auth-page">
+            <Link className="auth-brand" to="/">
+                StudyBuddy
+            </Link>
 
-            <form onSubmit={submitForm}>
-                <input type="text" value={name} onChange={(event) => setName(event.target.value)} required/>
-                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required/>
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required/>
-                <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required/>
-                {error && <p>{error}</p>}
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Creating Account..." : "Create Account"}
-                </button>
-                {successMessage && <p>{successMessage}</p>}
-            </form>
-        </>
+            <main className="auth-card">
+
+                <div className="auth-heading">
+                    <h1>Create your account</h1>
+                    <p>Start studying smarter with StudyBuddy.</p>
+                </div>
+
+
+                <form className="auth-form" onSubmit={submitForm}>
+
+                    <div className="auth-field">
+                        <label htmlFor="name">Name</label>
+                        <input 
+                        id="name"
+                        type="text" 
+                        value={name} 
+                        onChange={(event) => setName(event.target.value)} 
+                        required/>
+                    </div>
+
+                    <div className="auth-field">
+                        <label htmlFor="email">Email</label>
+                        <input 
+                        id="email"
+                        type="email" 
+                        value={email} 
+                        onChange={(event) => setEmail(event.target.value)} 
+                        required/>
+                    </div>
+
+                    <div className="auth-field">
+                        <label htmlFor="password">Password</label>
+                        <input 
+                        id="password"
+                        type="password" 
+                        value={password} 
+                        onChange={(event) => setPassword(event.target.value)} 
+                        required/>
+                    </div>
+
+                    <div className="auth-field">
+                        <label htmlFor="confirmPassword">Confirm Password</label>
+                        <input 
+                        id="confirmPassword"
+                        type="password" 
+                        value={confirmPassword} 
+                        onChange={(event) => setConfirmPassword(event.target.value)} 
+                        required/>
+                    </div>
+
+
+                    {error && <p className="auth-error">{error}</p>}
+
+                    {successMessage && (
+                        <p className="auth-success">{successMessage}</p>
+                    )}
+
+                    <button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? "Creating Account..." : "Create Account"}
+                    </button>
+                    
+                </form>
+
+                <p className="auth-switch">
+                    Already have an account?{" "}
+                    <Link to="/login">Login</Link>
+                </p>
+            </main>
+            
+            <Link className="auth-back-link" to="/">← Back Home</Link>     
+        </div>
     );
 }
 

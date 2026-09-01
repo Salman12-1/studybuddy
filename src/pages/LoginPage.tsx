@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "../lib/supabase";
+import "./Auth.css";
 
 function LoginPage()
 {
@@ -31,20 +32,62 @@ function LoginPage()
 
     }
     return (
-        <>
-            <h1>Login Page.</h1>
-            <Link to="/">Back Home</Link>
-            <Link to="/register">Create account</Link>
-            <form onSubmit={submitForm}>
+        <div className="auth-page">
 
-                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Logging in..." : "Login"}
-                </button>
-                {error && <p>{error}</p>}
-            </form>
-        </>
+            <Link className="auth-brand" to="/">
+                StudyBuddy
+            </Link>
+            
+            <main className="auth-card">
+                <div className="auth-heading">
+                    <h1>Welcome back</h1>
+                    <p>Sign in to continue to StudyBuddy.</p>
+                </div>
+
+
+                <form  className="auth-form" onSubmit={submitForm}>
+
+                    <div className="auth-field">
+                        <label htmlFor="email">Email</label>
+
+                        <input 
+                        id="email"
+                        type="email" 
+                        value={email} 
+                        onChange={(event) => setEmail(event.target.value)} 
+                        required />
+                    </div>
+
+
+                    <div className="auth-field">
+                        <label htmlFor="password">Password</label>
+                            
+                        <input 
+                        id="password"
+                        type="password" 
+                        value={password} 
+                        onChange={(event) => setPassword(event.target.value)} 
+                        required />
+                    </div>
+
+
+                    {error && <p className="auth-error">{error}</p>}
+
+                    <button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? "Logging in..." : "Login"}
+                    </button>
+                    
+                </form>
+
+                <p className="auth-switch">
+                    Don't have an account?{" "}
+                    <Link to="/register">Create account</Link>
+                </p>
+            </main>
+            <Link className="auth-back-link" to="/">← Back Home</Link>
+            
+            
+        </div>
     );
 }
 

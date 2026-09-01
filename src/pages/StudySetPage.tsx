@@ -17,8 +17,12 @@ function StudySetPage()
 {
     const [studySet, setStudySet] = useState<StudySet | null>(null);
     const [loading, setLoading] = useState(true);
+    const [materialsLoading, setMaterialsLoading] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState("");
 
     const 
     {
@@ -68,8 +72,7 @@ function StudySetPage()
     {
         if(!session)
         {
-            console.error("No session");
-            return;
+            throw new Error("No session");
         }
 
         const url = `http://localhost:3000/api/materials/${materialId}/extract`;
@@ -82,7 +85,13 @@ function StudySetPage()
         });
 
         const data = await response.json();
-        console.log(data);
+
+        if(!response.ok)
+        {
+            throw new Error(data.error || "Failed to extract material");
+        }
+
+        return data;
     }
 
     async function loadStudySet() 
@@ -114,6 +123,33 @@ function StudySetPage()
 
     }
 
+    async function removeMaterial(materialId: string, storagePath: string)
+    {
+        const {error: tableError} = await supabase
+        .from("study_materials")
+        .delete()
+        .eq("id", materialId);
+
+        if(tableError)
+        {
+            console.error(tableError);
+            return false;
+        }
+
+
+        const {error: storageError} = await supabase.storage
+        .from("study-materials")
+        .remove([storagePath]);
+
+        if(storageError)
+        {
+            console.log(storageError);
+        }
+
+        return true;
+    }
+
+
     async function deleteMaterial(material: StudyMaterial)
     {
         const confirmed = window.confirm(
@@ -123,26 +159,10 @@ function StudySetPage()
         if(!confirmed)
             return;
 
-        const {error: tableError} = await supabase
-        .from("study_materials")
-        .delete()
-        .eq("id", material.id);
+        const deleted = await removeMaterial(material.id, material.storage_path);
 
-        if(tableError)
-        {
-            console.error(tableError);
+        if(!deleted)
             return;
-        }
-
-
-        const {error: storageError} = await supabase.storage
-        .from("study-materials")
-        .remove([material.storage_path]);
-
-        if(storageError)
-        {
-            console.log(storageError);
-        }
 
         await loadMaterials();
     }
@@ -154,72 +174,127 @@ function StudySetPage()
         {
             return;
         }
-        const path = id + "/" + crypto.randomUUID() + ".pdf";
 
-        const {error: errorStorage} = await supabase.storage
-        .from("study-materials")
-        .upload(path, selectedFile);
+        setIsUploading(true);
+        setUploadError("");
 
-        if(errorStorage)
+        try
         {
-            console.error(errorStorage);
-            return;
-        }
-        console.log("Storage Upload successful");
+            const path = id + "/" + crypto.randomUUID() + ".pdf";
 
-        const {data: newMaterial, error: errorTable} = await supabase
-        .from("study_materials")
-        .insert({
-            study_set_id: id,
-            file_name: selectedFile.name,
-            storage_path: path,
-            mime_type: selectedFile.type, 
-        })
-        .select("id")
-        .single();
-
-        if(errorTable)
-        {
-            const {error: errorRemove} = await supabase.storage
+            const {error: errorStorage} = await supabase.storage
             .from("study-materials")
-            .remove([path]);
+            .upload(path, selectedFile);
 
-            if(errorRemove)
+            if(errorStorage)
             {
-                console.error(errorRemove);
+                console.error(errorStorage);
+                setUploadError("Failed to upload the PDF. Please try again.");
+                return;
             }
-            console.error(errorTable);
-            return;
-        }
+            console.log("Storage Upload successful");
 
-        await extractMaterial(newMaterial.id);
-        console.log("Table Upload successful");
-        await loadMaterials();
-        setSelectedFile(null);
+            const {data: newMaterial, error: errorTable} = await supabase
+            .from("study_materials")
+            .insert({
+                study_set_id: id,
+                file_name: selectedFile.name,
+                storage_path: path,
+                mime_type: selectedFile.type, 
+            })
+            .select("id")
+            .single();
+
+            if(errorTable)
+            {
+                const {error: errorRemove} = await supabase.storage
+                .from("study-materials")
+                .remove([path]);
+
+                if(errorRemove)
+                {
+                    console.error(errorRemove);
+                }
+                console.error(errorTable);
+                setUploadError("Failed to save the uploaded material.");
+                return;
+            }
+
+            try
+            {
+                await extractMaterial(newMaterial.id);
+            }
+            catch(error)
+            {
+                console.error(error);
+
+                const removed = await removeMaterial(newMaterial.id, path);
+
+                if (!removed)
+                {
+                    console.error("Failed to clean up material after extraction failure.");
+                }
+
+                setUploadError("Failed to process the PDF. Please try again.");
+                return;
+            }
+
+            console.log("Material upload and extraction successful");
+
+            await loadMaterials();
+            setSelectedFile(null);
+
+
+        }
+        catch (error)
+        {
+            console.error(error);
+            setUploadError("Something went wrong while processing the PDF.");
+        }
+        finally
+        {
+            setIsUploading(false);
+        }
     }
 
     async function loadMaterials()
-    {
-        const{data, error} = await supabase
-        .from("study_materials")
-        .select("id, file_name, storage_path, mime_type, explanation")
-        .eq("study_set_id", id)
-        .order("created_at", { ascending: true });
+    {   
+        setMaterialsLoading(true);
 
-        if(error)
+        try
         {
-            console.error(error);
-            return;
+            if (!id)
+            {
+                return;
+            }
+            const{data, error} = await supabase
+            .from("study_materials")
+            .select("id, file_name, storage_path, mime_type, explanation")
+            .eq("study_set_id", id)
+            .order("created_at", { ascending: true });
+
+            if(error)
+            {
+                console.error(error);
+                return;
+            }
+
+            setMaterials(data);
+            loadSavedExplanations(data);
+
+            const materialIds = data.map((material) => material.id);
+
+            await loadFlashcards(materialIds)
+            await loadQuizQuestions(materialIds)
         }
-
-        setMaterials(data);
-        loadSavedExplanations(data);
-
-        const materialIds = data.map((material) => material.id);
-        await loadFlashcards(materialIds)
-        await loadQuizQuestions(materialIds)
-
-        
+        catch (error)
+        {
+            console.error("Failed to load materials:", error);
+        }
+        finally
+        {
+            setMaterialsLoading(false);
+        }
     }
 
 
@@ -233,12 +308,41 @@ function StudySetPage()
 
     if (loading) 
     {
-        return <p>Loading...</p>;
+        return (
+            <div className="study-set-page">
+                <AppHeader />
+
+                <main className="study-set-container">
+                    <div className="page-state">
+                        <p className="page-state-message">
+                            Loading study set...
+                        </p>
+                    </div>
+                </main>
+            </div>
+        );
     }
 
     if (!studySet) 
     {
-        return <p>Study set not found.</p>;
+        return (
+            <div className="study-set-page">
+                <AppHeader />
+
+                <main className="study-set-container">
+                    <div className="page-state">
+                        <h2>Study set not found</h2>
+                        <p>
+                            This study set may have been deleted or is no longer available.
+                        </p>
+
+                        <Link to="/dashboard">
+                            ← Back to study sets
+                        </Link>
+                    </div>
+                </main>
+            </div>
+        );
     }
 
 
@@ -268,6 +372,7 @@ function StudySetPage()
                             className="file-input"
                             type="file" 
                             accept="application/pdf" 
+                            disabled={isUploading}
                             onChange={(event) => 
                                 setSelectedFile(event.target.files?.[0] ?? null)} 
                             />
@@ -283,19 +388,36 @@ function StudySetPage()
 
                         <button
                             className="upload-button"
-                            disabled={!selectedFile}
+                            disabled={!selectedFile || isUploading}
                             onClick={uploadMaterial}>
-                            Upload
+                            {isUploading ? "Uploading & processing..." : "Upload"}
                         </button>
+
+                        {uploadError && (
+                            <p className="upload-error">{uploadError}</p>
+                        )}
                     </div>
                 </div>
 
-
+                
                 <h2>Your Materials</h2>
-                {materials.length === 0 && <p>No materials uploaded yet.</p>}
+
+                {materialsLoading ? (
+                    <div className="materials-state">
+                        <p>Loading materials...</p>
+                    </div>
+                ) : materials.length === 0 ? (
+                    <div className="materials-state">
+                        <h3>No materials yet</h3>
+                        <p>
+                            Upload your first PDF above to start studying.
+                        </p>
+                    </div>
+                ) : null}
+                
 
 
-                {materials.map((material) => {
+                {!materialsLoading && materials.map((material) => {
 
                 const cards = flashcardsByMaterial[material.id];
                 const currentIndex = flashcardIndexes[material.id] ?? 0;
