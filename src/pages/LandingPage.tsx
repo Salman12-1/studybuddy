@@ -129,7 +129,7 @@ function LandingPage()
                             </div>
 
                             <div className="showcase-window-content">
-                                <p className="showcase-file-name">Operating Systems.pdf</p>
+                                <p className="showcase-file-name">Operating Systems</p>
 
                                 <div className="showcase-tabs">
                                     <span>Explanation</span>

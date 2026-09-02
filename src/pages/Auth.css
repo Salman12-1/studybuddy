@@ -59,6 +59,48 @@
     font: inherit;
 }
 
+
+/* Password input + eye */
+
+.password-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 44px;
+}
+
+.auth-form .password-input-wrapper .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+
+    width: 24px;
+    height: 24px;
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.auth-form .password-input-wrapper .password-toggle:hover:not(:disabled) {
+    background: transparent;
+    color: var(--color-primary);
+}
+
+
+/* Main form buttons */
+
 .auth-form button {
     width: 100%;
     padding: 12px;
@@ -79,6 +121,33 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+
+/* Password requirements */
+
+.password-requirements {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.password-requirements p {
+    margin: 0 0 2px;
+    font-weight: 600;
+}
+
+.password-requirements span {
+    color: var(--color-text-muted);
+}
+
+.password-requirements .requirement-met {
+    color: var(--color-success);
+}
+
+
+/* Links */
 
 .auth-switch {
     margin: 20px 0 0;
@@ -116,6 +185,9 @@
     color: var(--color-primary);
 }
 
+
+/* Messages */
+
 .auth-error {
     margin: 0;
     padding: 10px 12px;
@@ -134,9 +206,14 @@
     font-size: 14px;
 }
 
+
+/* Mobile */
+
 @media (max-width: 600px) {
     .auth-page {
-        padding: 32px 16px;
+        min-height: 100dvh;
+        padding: 24px 16px 90px;
+        justify-content: center;
     }
 
     .auth-card {

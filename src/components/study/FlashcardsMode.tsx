@@ -70,6 +70,7 @@ function FlashcardsMode({cards, currentIndex, isAnswerShown, isGenerating, error
 
                     <div className="flashcards-footer">
                         <button
+                            className="flashcards-regenerate-button"
                             disabled={isGenerating}
                             onClick={onGenerate}>
                             {isGenerating ? "Generating..." :"Regenerate"} 

@@ -168,6 +168,25 @@ function StudySetPage()
     }
 
 
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>)
+    {
+        const file = event.target.files?.[0] ?? null;
+
+        if (file && file.size > MAX_FILE_SIZE)
+        {
+            setSelectedFile(null);
+            setUploadError("PDF must be 10 MB or smaller.");
+            return;
+        }
+
+        setUploadError("");
+        setSelectedFile(file);
+    }
+
+
     async function uploadMaterial()
     {
         if(!selectedFile || !id)
@@ -373,8 +392,7 @@ function StudySetPage()
                             type="file" 
                             accept="application/pdf" 
                             disabled={isUploading}
-                            onChange={(event) => 
-                                setSelectedFile(event.target.files?.[0] ?? null)} 
+                            onChange={handleFileChange} 
                             />
 
                             <label htmlFor="pdf-upload" className="choose-file-button">

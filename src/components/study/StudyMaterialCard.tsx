@@ -14,12 +14,16 @@ interface CardProps
 function StudyMaterialCard({fileName, explanationContent, flashcardsContent, quizContent, onDelete}:CardProps)
 {
     const [studyMode, setStudyMode] = useState<"explain" | "flashcards" | "quiz" | null>(null);
-
+    const displayFileName = fileName.replace(/\.pdf$/i, "");
     return (
         <div className="study-material-card">
             <div className="material-header">
                 <span className="material-type">PDF</span>
-                <h3>{fileName}</h3>
+                <h3 
+                className="material-file-name"
+                title={displayFileName}>
+                    {displayFileName}
+                </h3>
 
                 <button
                 className="material-delete-button"

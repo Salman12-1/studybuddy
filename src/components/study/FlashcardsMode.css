@@ -158,4 +158,8 @@
   .flashcard p:first-child {
     font-size: 17px;
   }
+  
+  .flashcards-regenerate-button {
+    width: 100%;
+  }
 }

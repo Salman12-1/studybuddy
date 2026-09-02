@@ -209,17 +209,47 @@
 
 
 
-.dashboard-empty {
-  padding: 32px;
-  text-align: center;
+.dashboard-state {
+    padding: 32px;
+    text-align: center;
 
-  color: var(--color-text-muted);
-
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-lg);
 }
 
+.dashboard-state h3 {
+    margin: 0 0 8px;
+    color: var(--color-text);
+}
+
+.dashboard-state p {
+    margin: 0;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+.dashboard-state-error p {
+    margin-bottom: 16px;
+}
+
+
+.create-study-set-error {
+    margin: 0;
+    color: var(--color-error);
+    font-size: 14px;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.create-study-set-field input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 
 /* Tablet */
 @media (max-width: 800px) {

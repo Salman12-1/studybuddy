@@ -6,6 +6,9 @@
 .landing-header {
     border-bottom: 1px solid var(--color-border);
     background: var(--color-surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .landing-nav {

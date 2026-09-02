@@ -90,6 +90,13 @@
   border-color: #fca5a5;
 }
 
+.material-file-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 600px) {
   .study-material-card {
     padding: 18px;

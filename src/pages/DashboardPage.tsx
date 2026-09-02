@@ -16,26 +16,44 @@ function DashboardPage()
     const [studySets, setStudySets] = useState<StudySet[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newTitle, setNewTitle] = useState("");
+    const [isLoadingStudySets, setIsLoadingStudySets] = useState(true);
+    const [studySetsError, setStudySetsError] = useState("");
+    const [isCreatingStudySet, setIsCreatingStudySet] = useState(false);
+    const [createStudySetError, setCreateStudySetError] = useState("");
     const { session } = useAuth();
 
     
     async function loadStudySets() 
     {
-        const {data, error} = await supabase
-        .from("study_sets")
-        .select("id, title");
+        setIsLoadingStudySets(true);
+        setStudySetsError("");
 
-        if(error)
+        try
         {
-            console.error(error.message);
-            return;
+            const {data, error} = await supabase
+            .from("study_sets")
+            .select("id, title");
+
+            if(error)
+            {
+                console.error(error.message);
+                setStudySetsError("Failed to load your study sets.");
+                return;
+            }
+            setStudySets(data);
+        }
+        catch(error)
+        {   
+            console.error(error);
+            setStudySetsError("Something went wrong while loading your study sets."); 
+        }
+        finally
+        {
+            setIsLoadingStudySets(false);
         }
         
-        setStudySets(data);
+        
     }
-
-
-    
 
     async function createStudySet(event: React.SyntheticEvent<HTMLFormElement>) 
     {
@@ -47,28 +65,45 @@ function DashboardPage()
         if(!session)
             return;
 
-        const {data, error} = await supabase
-        .from("study_sets")
-        .insert({
-            title: newTitle.trim(),
-            user_id: session.user.id,//logged in user's UUID. 
-        })
-        .select("id, title")//return created row.
-        .single();//return one object instead of an array.
+        setIsCreatingStudySet(true);
+        setCreateStudySetError("");
 
-        if (error) 
+
+        try
         {
-            console.error(error.message);
-            return;
-        }
+            const {data, error} = await supabase
+            .from("study_sets")
+            .insert({
+                title: newTitle.trim(),
+                user_id: session.user.id,//logged in user's UUID. 
+            })
+            .select("id, title")//return created row.
+            .single();//return one object instead of an array.
 
-        setStudySets((previousStudySets) => [
-            ...previousStudySets,
-            data
-        ]);
-        
-        setNewTitle("");
-        setIsCreating(false);
+            if (error) 
+            {
+                console.error(error.message);
+                setCreateStudySetError("Failed to create the study set.");
+                return;
+            }
+
+            setStudySets((previousStudySets) => [
+                ...previousStudySets,
+                data
+            ]);
+            
+            setNewTitle("");
+            setIsCreating(false);
+        }
+        catch(error)
+        {
+            console.error(error);
+            setCreateStudySetError("Something went wrong while creating the study set.");
+        }
+        finally
+        {
+            setIsCreatingStudySet(false);
+        }
     }
 
     useEffect(() => {
@@ -78,7 +113,7 @@ function DashboardPage()
 
     return (
         <div className="dashboard-page">
-            <AppHeader/ >
+            <AppHeader />
 
             <main className="dashboard-container">
                 <div className="dashboard-intro">
@@ -91,7 +126,10 @@ function DashboardPage()
 
                     {!isCreating && 
                     <button className="create-study-set-button"
-                    onClick={() => setIsCreating(true)}>
+                    onClick={() => {
+                        setCreateStudySetError("");
+                        setIsCreating(true);
+                    }}>
                         + Create Study Set
                     </button>}
                 </div>
@@ -106,37 +144,69 @@ function DashboardPage()
                                 type="text"
                                 placeholder="e.g. Operating Systems"
                                 value={newTitle}
+                                disabled={isCreatingStudySet}
                                 onChange={(event) => setNewTitle(event.target.value)}
                                 autoFocus
                             />
+
+                            {createStudySetError && (
+                                <p className="create-study-set-error">
+                                    {createStudySetError}
+                                </p>
+                            )}
                         </div>
                         <div className="create-study-set-actions">
-                            <button className="secondary-button" type="button" onClick={() => setIsCreating(false)}>
+                            <button 
+                            className="secondary-button" 
+                            type="button" 
+                            disabled={isCreatingStudySet}
+                            onClick={() => setIsCreating(false)}>
                                 Cancel
                             </button>
 
-                            <button className="primary-button" type="submit">
-                                Create Study Set
+                            <button 
+                            className="primary-button" 
+                            type="submit"
+                            disabled={isCreatingStudySet}>
+                                {isCreatingStudySet ? "Creating..." : "Create Study Set"}
                             </button>
                         </div>
                     </form>
                 }
 
-                {studySets.length === 0 && (
-                    <p className="dashboard-empty">
-                        No study sets yet. Create one to get started.
-                    </p>
-                )}
 
-                <div className="study-set-grid">
-                    {studySets.map((studySet) => (
-                        <StudySetCard 
+                {isLoadingStudySets ? (
+                    <div className="dashboard-state">
+                        <p>Loading study sets...</p>
+                    </div>
+                ) : studySetsError ? (
+                    <div className="dashboard-state dashboard-state-error">
+                        <h3>Couldn't load your study sets</h3>
+                        <p>{studySetsError}</p>
+
+                        <button
+                        className="secondary-button"
+                        onClick={loadStudySets}>
+                            Try again
+                        </button>
+                    </div>
+                ) : studySets.length === 0 ? (
+                    <div className="dashboard-state">
+                        <h3>No study sets yet</h3>
+                        <p>Create your first study set to get started.</p>
+                    </div>
+                ) : (
+                    <div className="study-set-grid">
+                        {studySets.map((studySet) => (
+                            <StudySetCard 
                             key={studySet.id}
-                            id= {studySet.id}
-                            title= {studySet.title}
+                            id={studySet.id}
+                            title={studySet.title}
                         />
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
+                
             </main>
         </div>
     );
