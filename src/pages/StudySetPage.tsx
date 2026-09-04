@@ -12,6 +12,7 @@ import useQuiz from "../hooks/useQuiz";
 import StudyMaterialCard from "../components/study/StudyMaterialCard";
 import AppHeader from "../components/AppHeader";
 import "./StudySetPage.css";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function StudySetPage()
 {
@@ -75,7 +76,7 @@ function StudySetPage()
             throw new Error("No session");
         }
 
-        const url = `http://localhost:3000/api/materials/${materialId}/extract`;
+        const url = `${API_URL}/api/materials/${materialId}/extract`;
 
         const response = await fetch(url, {
             method: "POST",

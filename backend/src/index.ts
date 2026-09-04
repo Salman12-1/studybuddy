@@ -7,7 +7,13 @@ import { PDFParse } from "pdf-parse";
 import openai from "./lib/openai";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
-import { de } from "zod/v4/locales";
+
+
+const PORT = Number(process.env.PORT) || 3000;
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+
 
 const FlashcardsResponse = z.object({
     flashcards: z.array(
@@ -30,7 +36,7 @@ const QuizResponse = z.object({
 
 const app = express();
 
-app.use(cors());
+app.use(cors({origin: FRONTEND_URL}));
 app.use(express.json());
 
 
@@ -630,7 +636,7 @@ app.post("/api/materials/:id/quiz", requireAuth, async (request, response) => {
 
 
 //run function when server starts
-app.listen(3000, () => {
+app.listen(PORT, () => {
 
-    console.log("StudyBuddy backend running on port 3000");
+    console.log(`StudyBuddy backend running on port ${PORT}`);
 });

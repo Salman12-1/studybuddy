@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import type { Flashcard } from "../types/study";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function useFlashcards()
 {
@@ -71,7 +72,7 @@ function useFlashcards()
 
         try
         {
-            const url = `http://localhost:3000/api/materials/${materialId}/flashcards`;
+            const url = `${API_URL}/api/materials/${materialId}/flashcards`;
 
             const response = await fetch(url ,{
                 method: "POST",

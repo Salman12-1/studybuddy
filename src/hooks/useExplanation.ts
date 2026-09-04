@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import type { StudyMaterial } from "../types/study";
-
+const API_URL = import.meta.env.VITE_API_URL;
 
 function useExplanation()
 {
@@ -33,7 +33,7 @@ function useExplanation()
 
         try 
         {
-            const url = `http://localhost:3000/api/materials/${materialId}/explain`;
+            const url = `${API_URL}/api/materials/${materialId}/explain`;
 
             const response = await fetch(url ,{
                 method: "POST",

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import type { QuizQuestion } from "../types/study";
-
+const API_URL = import.meta.env.VITE_API_URL;
 
 function useQuiz()
 {
@@ -70,7 +70,7 @@ function useQuiz()
 
         try
         {
-            const url = `http://localhost:3000/api/materials/${materialId}/quiz`;
+            const url = `${API_URL}/api/materials/${materialId}/quiz`;
 
             const response = await fetch(url ,{
                 method: "POST",
