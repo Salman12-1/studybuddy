@@ -6,11 +6,9 @@ StudyBuddy is an AI-powered study companion built to make exam preparation simpl
 - Flashcards
 - Quizzes
 
-
 ## Live Demo
 
 [Open StudyBuddy](https://studybuddy-beta-neon.vercel.app)
-
 
 ## Features
 
@@ -24,7 +22,6 @@ StudyBuddy is an AI-powered study companion built to make exam preparation simpl
 - Regenerate explanations, flashcards, and quizzes
 - Save generated study content for later use
 - Responsive design for desktop and mobile
-
 
 ## Tech Stack
 
@@ -44,7 +41,7 @@ StudyBuddy is an AI-powered study companion built to make exam preparation simpl
 - pdf-parse
 - OpenAI API
 
-### Database & Authentication
+### Database, Authentication & Storage
 - Supabase Database
 - Supabase Auth
 - Supabase Storage
@@ -53,7 +50,6 @@ StudyBuddy is an AI-powered study companion built to make exam preparation simpl
 ### Deployment
 - Vercel — frontend
 - Render — backend
-
 
 ## Architecture
 
@@ -74,6 +70,8 @@ Express + TypeScript Backend
     - Storage
 ```
 
+The frontend handles the user interface and communicates with the Express backend for server-side operations. The backend processes uploaded PDFs and securely communicates with OpenAI, while Supabase handles authentication, database storage, and file storage.
+
 ## How It Works
 
 1. The user creates an account or logs in.
@@ -86,7 +84,6 @@ Express + TypeScript Backend
    - Flashcards
    - Quizzes
 7. Generated content is saved to the database so it can be revisited later.
-
 
 ## Screenshots
 
@@ -104,3 +101,80 @@ Express + TypeScript Backend
 
 ### Quiz
 ![StudyBuddy Quiz Mode](screenshots/quiz-view.png)
+
+## Running Locally
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Salman12-1/studybuddy.git
+cd studybuddy
+```
+
+### 2. Install frontend dependencies
+
+```bash
+npm install
+```
+
+### 3. Install backend dependencies
+
+```bash
+cd backend
+npm install
+```
+
+### 4. Configure environment variables
+
+Create a `.env.local` file in the project root:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+VITE_API_URL=http://localhost:3000
+```
+
+Create a `.env` file inside the `backend` folder:
+
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+OPENAI_API_KEY=your_openai_api_key
+FRONTEND_URL=http://localhost:5173
+```
+
+Do not commit these files or expose your API keys publicly.
+
+### 5. Start the backend
+
+From the `backend` folder:
+
+```bash
+npm run dev
+```
+
+The backend will run locally on port `3000`.
+
+### 6. Start the frontend
+
+Open another terminal from the project root and run:
+
+```bash
+npm run dev
+```
+
+The frontend will be available at:
+
+```text
+http://localhost:5173
+```
+
+## Future Improvements
+
+Possible future improvements include:
+
+- Custom flashcard generation counts
+- Custom quiz question counts
+- Difficulty levels for generated content
+- Additional study modes
+- Performance improvements and code splitting
