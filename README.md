@@ -1,75 +1,106 @@
-# React + TypeScript + Vite
+# StudyBuddy
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+StudyBuddy is an AI-powered study companion built to make exam preparation simpler and more efficient. Users upload the PDF material they need to study, and StudyBuddy turns it into:
 
-Currently, two official plugins are available:
+- Clear explanations
+- Flashcards
+- Quizzes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## React Compiler
+## Live Demo
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+[Open StudyBuddy](https://studybuddy-beta-neon.vercel.app)
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- User authentication with email verification
+- Create and manage study sets
+- Upload PDF study materials
+- Automatically extract text from uploaded PDFs
+- Generate simplified AI explanations
+- Generate flashcards from study material
+- Generate multiple-choice quizzes
+- Regenerate explanations, flashcards, and quizzes
+- Save generated study content for later use
+- Responsive design for desktop and mobile
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Tech Stack
 
-```
+### Frontend
+- React
+- TypeScript
+- Vite
+- React Router
+- React Markdown
+- KaTeX
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Backend
+- Node.js
+- Express
+- TypeScript
+- Zod
+- pdf-parse
+- OpenAI API
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Database & Authentication
+- Supabase Database
+- Supabase Auth
+- Supabase Storage
+- Row Level Security (RLS)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Deployment
+- Vercel — frontend
+- Render — backend
 
-```
+
+## Architecture
+
+StudyBuddy follows a client-server architecture:
+
+```text
+React + TypeScript Frontend
+        |
+        v
+Express + TypeScript Backend
+        |
+        +------------------+
+        |                  |
+        v                  v
+    Supabase            OpenAI API
+    - Auth
+    - Database
+    - Storage
+
+
+## How It Works
+
+1. The user creates an account or logs in.
+2. The user creates a study set.
+3. A PDF study material is uploaded to Supabase Storage.
+4. The backend extracts text from the PDF.
+5. The extracted text is stored and used as input for AI generation.
+6. The user can generate:
+   - Explanations
+   - Flashcards
+   - Quizzes
+7. Generated content is saved to the database so it can be revisited later.
+
+
+## Screenshots
+
+### Landing Page
+![StudyBuddy Landing Page](screenshots/landing-page.png)
+
+### Dashboard
+![StudyBuddy Dashboard](screenshots/dashboard.png)
+
+### Explanation
+![StudyBuddy Explanation Mode](screenshots/explanation-view.png)
+
+### Flashcards
+![StudyBuddy Flashcards Mode](screenshots/flashcards-view.png)
+
+### Quiz
+![StudyBuddy Quiz Mode](screenshots/quiz-view.png)
