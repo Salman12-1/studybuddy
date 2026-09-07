@@ -72,7 +72,7 @@ Express + TypeScript Backend
     - Auth
     - Database
     - Storage
-
+```
 
 ## How It Works
 
