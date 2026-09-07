@@ -9,6 +9,7 @@ StudyBuddy is an AI-powered study companion built to make exam preparation simpl
 ## Live Demo
 
 [Open StudyBuddy](https://studybuddy-beta-neon.vercel.app)
+> **Note:** The backend is hosted on Render's free tier, so the first request may take a little longer while the server wakes up.
 
 ## Features
 
